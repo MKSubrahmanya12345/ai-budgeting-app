@@ -15,6 +15,8 @@ import {
   Sparkles,
   Zap,
   PieChart, //$$$$$$
+  Bot,
+  BookOpen, // Added BookOpen for Courses
 } from "lucide-react";
 import api from "../../lib/api";
 import { formatMonthKey, monthTitle } from "../../lib/budget";
@@ -24,6 +26,8 @@ const navItems = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/dashboard/analysis", label: "Analysis", icon: PieChart }, //$$$$$$
   { to: "/dashboard/affordability", label: "Affordability AI", icon: Sparkles },
+  { to: "/dashboard/moneybuddy", label: "MoneyBuddy", icon: Bot },
+  { to: "/dashboard/courses", label: "Money Courses", icon: BookOpen },
   { to: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/dashboard/transactions", label: "Transactions", icon: ReceiptText },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },

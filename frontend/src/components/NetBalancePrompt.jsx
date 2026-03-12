@@ -2,32 +2,52 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/useAuth';
 
 const NetBalancePrompt = () => {
-  const [netBalance, setNetBalance] = useState('');
-  const { user, updateNetBalance } = useAuth();
+  const [upiBalance, setUpiBalance] = useState('');
+  const [cashBalance, setCashBalance] = useState('');
+  const { updateNetBalance } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await updateNetBalance(netBalance);
+    await updateNetBalance(Number(upiBalance), Number(cashBalance));
+    setUpiBalance('');
+    setCashBalance('');
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Set Your Net Balance</h2>
-        <p className="mb-4">Please provide your current net balance to continue.</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="number"
-            value={netBalance}
-            onChange={(e) => setNetBalance(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded mb-4"
-            placeholder="Enter your net balance"
-          />
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md">
+        <h2 className="text-2xl font-black text-white mb-2">Initialize Balances</h2>
+        <p className="text-slate-400 text-sm mb-6">Please provide your current balances to proceed.</p>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-slate-300 mb-1.5">Net Balance (UPI / Bank)</label>
+            <input
+              type="number"
+              value={upiBalance}
+              onChange={(e) => setUpiBalance(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 text-slate-100 outline-none focus:border-cyan-500 transition-colors"
+              placeholder="Enter UPI balance"
+              required
+              min="0"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-300 mb-1.5">Cash Balance</label>
+            <input
+              type="number"
+              value={cashBalance}
+              onChange={(e) => setCashBalance(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2.5 px-4 text-slate-100 outline-none focus:border-cyan-500 transition-colors"
+              placeholder="Enter cash balance"
+              required
+              min="0"
+            />
+          </div>
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            className="w-full bg-cyan-600 text-white font-bold py-3 mt-2 rounded-xl hover:bg-cyan-500 transition-colors shadow-lg shadow-cyan-900/20"
           >
-            Save
+            Save Balances
           </button>
         </form>
       </div>

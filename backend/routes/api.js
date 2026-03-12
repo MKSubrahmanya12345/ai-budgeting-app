@@ -23,6 +23,7 @@ import {
 
 import { getDashboardStats, getAnalysisSummary } from "../controllers/budget.controller.js";
 import { getAiBudgetBrief } from "../controllers/aiInsights.controller.js";
+import { handleBuddyChat, getChatHistory, getChats } from "../controllers/chatbot.controller.js";
 import {
   contributeToGoal,
   createGoal,
@@ -43,6 +44,7 @@ import {
   seedDemoData,
   updateExpense,
   updateTransaction,
+  importTransactionsFromPDF,
 } from "../controllers/transaction.controller.js";
 import { convertCurrency } from "../controllers/settings.controller.js";
 
@@ -71,6 +73,7 @@ router.post("/transactions/seed", authMiddleware, seedDemoData);
 router.put("/transactions/:transactionId", authMiddleware, updateTransaction);
 router.delete("/transactions/:transactionId", authMiddleware, deleteTransaction);
 router.delete("/transactions", authMiddleware, clearTransactions);
+router.post("/transactions/import/pdf", authMiddleware, importTransactionsFromPDF);
 
 //$$$$$$
 // Analysis Routes
@@ -90,6 +93,10 @@ router.get("/ai/insights/subscriptions", authMiddleware, detectSubscriptions);
 router.post("/ai/goals/delay-impact", authMiddleware, getGoalDelayImpact);
 
 router.get("/ai/checkin/weekly", authMiddleware, getWeeklyAiCheckin);
+
+router.get("/ai/chats", authMiddleware, getChats);
+router.get("/ai/chats/:chatId", authMiddleware, getChatHistory);
+router.post("/ai/chats", authMiddleware, handleBuddyChat);
 
 
 

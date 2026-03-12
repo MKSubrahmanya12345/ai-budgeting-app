@@ -225,7 +225,7 @@ const getAiClassification = async ({ description, amount, transactionDate, defau
 
 export const createSmartTransaction = async (req, res) => {
   try {
-    const { description, amount, transactionDate, entryMode, type } = req.body;
+    const { description, amount, transactionDate, entryMode, type, paymentMode } = req.body;
     const parsedAmount = Number(amount);
 
     if (!description?.trim() || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
@@ -236,6 +236,8 @@ export const createSmartTransaction = async (req, res) => {
     if (Number.isNaN(safeDate.getTime())) {
       return res.status(400).json({ message: "Transaction date is invalid" });
     }
+
+    const validPaymentMode = ["cash", "upi", "savings"].includes(paymentMode) ? paymentMode : "upi";
 
     const aiData = await getAiClassification({
       description: description.trim(),
@@ -249,6 +251,7 @@ export const createSmartTransaction = async (req, res) => {
       entryMode: entryMode === "demo" ? "demo" : "actual",
       description: description.trim(),
       amount: parsedAmount,
+      paymentMode: validPaymentMode,
       type: aiData.type,
       category: aiData.category,
       transactionDate: safeDate,

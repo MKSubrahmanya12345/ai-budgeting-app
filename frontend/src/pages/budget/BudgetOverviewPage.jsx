@@ -2,6 +2,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BadgeCheck, PiggyBank, Sparkles, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { monthTitle } from "../../lib/budget";
 import { useBudgetOutlet } from "./useBudgetOutlet";
+import MarketRates from "../../components/MarketRates";
 
 const BudgetOverviewPage = () => {
   const { stats, calendarSummary, transactions, money, currentMonth } = useBudgetOutlet();
@@ -93,6 +94,8 @@ const BudgetOverviewPage = () => {
           </div>
         </div>
       </section>
+
+      <MarketRates />
     </div>
   );
 };

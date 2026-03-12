@@ -1,28 +1,6 @@
 import Expense from "../models/expense.js";
 import User from "../models/user.js";
-
-const getMonthRange = (monthString) => {
-  const now = new Date();
-  let year = now.getFullYear();
-  let month = now.getMonth() + 1;
-
-  if (monthString) {
-    const [yearStr, monthStr] = monthString.split("-");
-    const parsedYear = Number(yearStr);
-    const parsedMonth = Number(monthStr);
-
-    if (Number.isInteger(parsedYear) && Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12) {
-      year = parsedYear;
-      month = parsedMonth;
-    }
-  }
-
-  const start = new Date(year, month - 1, 1);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(year, month, 1);
-  end.setHours(0, 0, 0, 0);
-  return { start, end };
-};
+import { getMonthRange } from "../lib/time.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
@@ -54,13 +32,15 @@ export const getDashboardStats = async (req, res) => {
     const netBalance = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? (netBalance / totalIncome) * 100 : 0;
     const averageTransactionValue = transactions.length > 0 ? (totalIncome + totalExpenses) / transactions.length : 0;
-    const monthlyBudget = Number(user?.monthlyBudget || 0);
+    const monthlyBudget = Number(user.monthlyBudget || 0);
     const budgetUsagePercent = monthlyBudget > 0 ? (totalExpenses / monthlyBudget) * 100 : 0;
 
     res.status(200).json({
       totalIncome: Number(totalIncome.toFixed(2)),
       totalExpenses: Number(totalExpenses.toFixed(2)),
-      netBalance: Number(netBalance.toFixed(2)),
+      netBalance: Number(((user.netBalance || 0) + (user.cashBalance || 0)).toFixed(2)),
+      userNetBalance: Number((user.netBalance || 0).toFixed(2)),
+      userCashBalance: Number((user.cashBalance || 0).toFixed(2)),
       essentialSpend: Number(essentialSpend.toFixed(2)),
       savingsRate: Number(savingsRate.toFixed(2)),
       transactionCount: transactions.length,

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Brain, CheckCircle2, Loader2, Sparkles } from "lucide-react";
-import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AlertTriangle, Brain, CheckCircle2, Loader2, Sparkles, PieChartIcon } from "lucide-react";
+import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, XAxis, YAxis, PieChart, Pie, Cell } from "recharts";
 import api from "../../lib/api";
 import { useBudgetOutlet } from "./useBudgetOutlet";
+
+const COLORS = ['#22d3ee', '#818cf8', '#f472b6', '#fbbf24', '#34d399', '#f87171', '#c084fc', '#fb923c'];
 
 const AnalysisPage = () => {
   const { currentMonth, money, notify } = useBudgetOutlet();
   const [loading, setLoading] = useState(true);
   const [brief, setBrief] = useState(null);
+  const [categorySummary, setCategorySummary] = useState([]);
 
   const monthParam = useMemo(() => {
     const year = currentMonth.getFullYear();
@@ -19,10 +22,12 @@ const AnalysisPage = () => {
     const run = async () => {
       try {
         setLoading(true);
-        const { data } = await api.get("/api/transactions/ai-brief", {
-          params: { month: monthParam, mode: "actual" },
-        });
-        setBrief(data);
+        const [briefRes, summaryRes] = await Promise.all([
+          api.get("/api/transactions/ai-brief", { params: { month: monthParam, mode: "actual" } }),
+          api.get("/api/analysis/summary", { params: { month: monthParam, mode: "actual" } })
+        ]);
+        setBrief(briefRes.data);
+        setCategorySummary(summaryRes.data || []);
       } catch (error) {
         notify("error", error.response?.data?.message || "Could not load AI analysis.");
       } finally {
@@ -77,22 +82,63 @@ const AnalysisPage = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
-        <h3 className="font-semibold text-white">Top Spend Categories</h3>
-        <div className="h-64 mt-3">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={brief.topCategories || []}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="category" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
-              <Tooltip
-                formatter={(value) => money(value)}
-                contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "10px" }}
-              />
-              <Bar dataKey="amount" fill="#22d3ee" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <article className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
+          <h3 className="font-semibold text-white">Top Spend Categories</h3>
+          <div className="h-64 mt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={brief.topCategories || []}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="category" stroke="#94a3b8" />
+                <YAxis stroke="#94a3b8" />
+                <RechartsTooltip
+                  formatter={(value) => money(value)}
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "10px" }}
+                />
+                <Bar dataKey="amount" fill="#22d3ee" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+        
+        <article className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <PieChartIcon size={16} className="text-purple-300" /> Category Breakdown
+          </h3>
+          <div className="h-64 mt-3">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categorySummary}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="total"
+                  nameKey="category"
+                  stroke="none"
+                >
+                  {categorySummary.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  formatter={(value) => money(value)}
+                  contentStyle={{ backgroundColor: "#0f172a", border: "1px solid #334155", borderRadius: "10px" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+            {categorySummary.map((entry, index) => (
+              <div key={entry.category} className="flex items-center gap-1.5 text-xs text-slate-300">
+                <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                {entry.category}: {money(entry.total)}
+              </div>
+            ))}
+          </div>
+        </article>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">

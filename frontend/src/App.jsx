@@ -5,6 +5,8 @@ import BudgetOverviewPage from "./pages/budget/BudgetOverviewPage";
 import BudgetCalendarPage from "./pages/budget/BudgetCalendarPage";
 import BudgetTransactionsPage from "./pages/budget/BudgetTransactionsPage";
 import BudgetAffordabilityPage from "./pages/budget/BudgetAffordabilityPage";
+import MoneyBuddyPage from "./pages/MoneyBuddy/MoneyBuddyPage";
+import CoursesPage from "./pages/Courses/CoursesPage";
 import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
 import { useAuth } from "./context/useAuth";
@@ -27,7 +29,8 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user.netBalance || user.netBalance === 0) {
+  if ((user.netBalance === undefined || user.netBalance === null || user.netBalance === 0) && 
+      (user.cashBalance === undefined || user.cashBalance === null || user.cashBalance === 0)) {
     return <NetBalancePrompt />;
   }
 
@@ -68,6 +71,8 @@ function App() {
           <Route path="overview" element={<BudgetOverviewPage />} />
           <Route path="analysis" element={<AnalysisPage />} /> 
           <Route path="affordability" element={<BudgetAffordabilityPage />} />
+          <Route path="moneybuddy" element={<MoneyBuddyPage />} />
+          <Route path="courses" element={<CoursesPage />} />
           <Route path="calendar" element={<BudgetCalendarPage />} />
           <Route path="transactions" element={<BudgetTransactionsPage />} />
           <Route path="settings" element={<SettingsPage />} />

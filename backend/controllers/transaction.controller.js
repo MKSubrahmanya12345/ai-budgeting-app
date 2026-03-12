@@ -2,6 +2,7 @@ import Expense from "../models/expense.js";
 
 const VALID_TYPES = ["income", "expense", "transfer"];
 const VALID_MODES = ["demo", "actual"];
+const VALID_PAYMENT_MODES = ["cash", "upi", "savings"];
 const DEFAULT_CATEGORIES = {
   income: ["Salary", "Freelance", "Investments", "Refund", "Gift", "Other"],
   expense: [
@@ -117,6 +118,7 @@ const normalizeTransactionPayload = (payload = {}, fallbackType = "expense") => 
   const type = normalizeType(payload.type || fallbackType);
   const amount = Number(payload.amount);
   const transactionDate = payload.transactionDate ? new Date(payload.transactionDate) : new Date();
+  const paymentMode = VALID_PAYMENT_MODES.includes(payload.paymentMode) ? payload.paymentMode : "upi";
 
   if (!payload.description?.trim()) {
     return { error: "Description is required" };
@@ -135,6 +137,7 @@ const normalizeTransactionPayload = (payload = {}, fallbackType = "expense") => 
       description: payload.description.trim(),
       amount,
       type,
+      paymentMode,
       category: normalizeCategory(type, payload.category),
       transactionDate,
       note: String(payload.note || "").trim(),
@@ -195,6 +198,7 @@ export const updateTransaction = async (req, res) => {
       description: req.body.description ?? existing.description,
       amount: req.body.amount ?? existing.amount,
       type: req.body.type ?? existing.type,
+      paymentMode: req.body.paymentMode ?? existing.paymentMode,
       category: req.body.category ?? existing.category,
       transactionDate: req.body.transactionDate ?? existing.transactionDate,
       note: req.body.note ?? existing.note,
@@ -291,6 +295,48 @@ export const getCalendarSummary = async (req, res) => {
   }
 };
 
+export const importTransactionsFromPDF = async (req, res) => {
+  try {
+    const transactions = req.body.transactions;
+
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      return res.status(400).json({ message: "No transactions provided" });
+    }
+
+    const entryMode = normalizeMode(req.body.entryMode || "actual");
+
+    const normalizedTransactions = [];
+
+    for (const tx of transactions) {
+      const normalized = normalizeTransactionPayload({
+        description: tx.name,
+        amount: Math.abs(Number(tx.amount)),
+        type: Number(tx.amount) > 0 ? "income" : "expense",
+        paymentMode: "upi",
+        category: tx.category || "Other",
+        transactionDate: tx.date,
+      });
+
+      if (!normalized.error) {
+        normalizedTransactions.push({
+          userId: req.user.id,
+          entryMode,
+          ...normalized.data,
+        });
+      }
+    }
+
+    const inserted = await Expense.insertMany(normalizedTransactions);
+
+    res.status(201).json({
+      message: "Transactions imported",
+      count: inserted.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to import transactions" });
+  }
+};
+
 export const seedDemoData = async (req, res) => {
   try {
     const entryMode = normalizeMode(req.body?.entryMode || req.query?.mode || "actual");
@@ -308,6 +354,7 @@ export const seedDemoData = async (req, res) => {
         type: "income",
         description: "Monthly Salary",
         amount: 45000,
+        paymentMode: "savings",
         category: "Salary",
         transactionDate: getDate(-12),
         note: "Main salary credit",
@@ -319,6 +366,7 @@ export const seedDemoData = async (req, res) => {
         type: "income",
         description: "Freelance Design",
         amount: 8000,
+        paymentMode: "upi",
         category: "Freelance",
         transactionDate: getDate(-4),
         note: "Weekend project payout",
@@ -330,6 +378,7 @@ export const seedDemoData = async (req, res) => {
         type: "expense",
         description: "Apartment Rent",
         amount: 16000,
+        paymentMode: "savings",
         category: "Rent",
         transactionDate: getDate(-10),
         isEssential: true,
@@ -342,6 +391,7 @@ export const seedDemoData = async (req, res) => {
         type: "expense",
         description: "Groceries",
         amount: 3200,
+        paymentMode: "upi",
         category: "Food",
         transactionDate: getDate(-8),
         isEssential: true,
@@ -353,6 +403,7 @@ export const seedDemoData = async (req, res) => {
         type: "expense",
         description: "Streaming Subscription",
         amount: 599,
+        paymentMode: "upi",
         category: "Entertainment",
         transactionDate: getDate(-5),
         isEssential: false,
@@ -364,6 +415,7 @@ export const seedDemoData = async (req, res) => {
         type: "expense",
         description: "Metro Card Recharge",
         amount: 1200,
+        paymentMode: "cash",
         category: "Transport",
         transactionDate: getDate(-2),
         isEssential: true,

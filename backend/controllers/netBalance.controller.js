@@ -2,16 +2,23 @@ import User from "../models/user.js";
 
 export const updateNetBalance = async (req, res) => {
     try {
-        const { netBalance } = req.body;
+        const { netBalance, cashBalance } = req.body;
         const updates = {};
 
         if (netBalance !== undefined) {
             const parsedNetBalance = Number(netBalance);
-            if (!Number.isFinite(parsedNetBalance) || parsedNetBalance <= 0) {
-                return res.status(400).json({ message: "Net balance must be greater than zero" });
+            if (!Number.isFinite(parsedNetBalance) || parsedNetBalance < 0) {
+                return res.status(400).json({ message: "Net balance cannot be negative" });
             }
-
             updates.netBalance = parsedNetBalance;
+        }
+
+        if (cashBalance !== undefined) {
+            const parsedCashBalance = Number(cashBalance);
+            if (!Number.isFinite(parsedCashBalance) || parsedCashBalance < 0) {
+                return res.status(400).json({ message: "Cash balance cannot be negative" });
+            }
+            updates.cashBalance = parsedCashBalance;
         }
 
         if (Object.keys(updates).length === 0) {
