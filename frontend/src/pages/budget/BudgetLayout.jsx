@@ -18,8 +18,11 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  PlusCircle,
   RefreshCcw,
   Loader2,
+  Users,
+  HandCoins,
 } from "lucide-react";
 import api from "../../lib/api";
 import { formatMonthKey, monthTitle } from "../../lib/budget";
@@ -28,6 +31,7 @@ import FloatingChatbot from "../../components/FloatingChatbot";
 
 const navItems = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
+  { to: "/dashboard/campus-split", label: "Campus Splitter", icon: Users },
   { to: "/dashboard/analysis", label: "Analysis", icon: PieChart }, //$$$$$$
   { to: "/dashboard/affordability", label: "Affordability AI", icon: Sparkles },
   { to: "/dashboard/simulator", label: "Future Simulator", icon: Rocket },
@@ -195,8 +199,8 @@ const BudgetLayout = () => {
                 <Zap size={18} className="text-white" />
               </div>
               <div>
-                <p className="font-bold text-white">Budget Hub</p>
-                <p className="text-xs text-slate-400">{user?.name || "User"}</p>
+                <p className="font-bold text-white">Pocket Genie</p>
+                <p className="text-xs text-slate-400">{user?.name || "Student"}</p>
               </div>
             </div>
 

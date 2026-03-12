@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Sparkles, TrendingUp, AlertTriangle, ArrowRight, Bot } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertTriangle, ArrowRight, Bot, Calculator } from 'lucide-react';
 import api from '../../lib/api';
 
 const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
@@ -128,7 +128,7 @@ const FutureSimulatorPage = () => {
                   type="range" 
                   min="0" max="100000" step="1000" 
                   value={startingCapital} 
-                  onChange={e => setStartingCapital(e.target.value)}
+                  onChange={e => setStartingCapital(Number(e.target.value))}
                   className="w-full accent-cyan-500"
                 />
               </div>
@@ -141,7 +141,7 @@ const FutureSimulatorPage = () => {
                   type="range" 
                   min="0" max="20000" step="100" 
                   value={monthlyContribution} 
-                  onChange={e => setMonthlyContribution(e.target.value)}
+                  onChange={e => setMonthlyContribution(Number(e.target.value))}
                   className="w-full accent-cyan-500"
                 />
               </div>
@@ -154,7 +154,7 @@ const FutureSimulatorPage = () => {
                   type="range" 
                   min="1" max="15" step="0.5" 
                   value={expectedReturn} 
-                  onChange={e => setExpectedReturn(e.target.value)}
+                  onChange={e => setExpectedReturn(Number(e.target.value))}
                   className="w-full accent-cyan-500"
                 />
               </div>
@@ -167,7 +167,7 @@ const FutureSimulatorPage = () => {
                   type="range" 
                   min="1" max="40" step="1" 
                   value={years} 
-                  onChange={e => setYears(e.target.value)}
+                  onChange={e => setYears(Number(e.target.value))}
                   className="w-full accent-cyan-500"
                 />
               </div>

@@ -17,20 +17,46 @@ const BudgetOverviewPage = () => {
 
   const sampleCount = transactions.filter((txn) => txn.isSample).length;
   const budgetLeft = Math.max((stats.monthlyBudget || 0) - (stats.totalExpenses || 0), 0);
+  
+  const today = new Date();
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(lastDayOfMonth - today.getDate() + 1, 1);
+  const dailySafeSpend = budgetLeft / daysRemaining;
 
   return (
     <div className="space-y-4">
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {/* Student Welcome Header */}
+      <div className="bg-gradient-to-r from-indigo-600/20 to-fuchsia-600/20 rounded-2xl border border-indigo-500/20 p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <h2 className="text-white font-bold leading-tight">Student Pocket Genie Active</h2>
+            <p className="text-indigo-300 text-[10px] uppercase font-bold tracking-widest">Live financial tracking for campus life</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-800">
+           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">System Healthy</span>
+        </div>
+      </div>
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {[
-          { label: "Income", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-300" },
-          { label: "Expenses", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-300" },
-          { label: "Net Balance", value: money(stats.netBalance), icon: Wallet, color: "text-cyan-300" },
-          { label: "Budget Left", value: money(budgetLeft), icon: PiggyBank, color: "text-indigo-300" },
+          { label: "Pocket Money", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-300" },
+          { label: "Spent", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-300" },
+          { label: "In Wallet", value: money(stats.netBalance), icon: Wallet, color: "text-cyan-300" },
+          { label: "Safe to Spend Today", value: money(dailySafeSpend), icon: Sparkles, color: "text-fuchsia-300", highlight: true },
+          { label: "Month Goal Left", value: money(budgetLeft), icon: PiggyBank, color: "text-indigo-300" },
         ].map((card) => (
-          <article key={card.label} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+          <article 
+            key={card.label} 
+            className={`rounded-2xl border ${card.highlight ? 'border-fuchsia-500/30 bg-fuchsia-500/10' : 'border-slate-800 bg-slate-900/80'} p-4 transition-transform hover:scale-[1.02]`}
+          >
             <card.icon size={18} className={card.color} />
             <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold mt-2">{card.label}</p>
-            <p className="text-2xl font-black mt-1 text-white">{card.value}</p>
+            <p className={`text-2xl font-black mt-1 ${card.highlight ? 'text-fuchsia-100' : 'text-white'}`}>{card.value}</p>
+            {card.highlight && <p className="text-[10px] text-fuchsia-400 font-bold mt-1 uppercase tracking-tight">Based on {daysRemaining} days left</p>}
           </article>
         ))}
       </section>
@@ -93,6 +119,17 @@ const BudgetOverviewPage = () => {
             <p className="text-xs text-slate-400 mt-1">Income + expense entries for this month.</p>
           </div>
         </div>
+      </section>
+
+      <section className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-4 flex items-center gap-4">
+         <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
+           <BadgeCheck size={20} />
+         </div>
+         <div className="flex-1">
+           <p className="text-white text-sm font-bold">Campus Perk Alert!</p>
+           <p className="text-slate-400 text-xs mt-0.5">Your University ID gets you 50% off on "Money Buddy Pro" and local cafes. Check your student email!</p>
+         </div>
+         <button className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-500 transition-colors">Claim</button>
       </section>
 
       <MarketRates />

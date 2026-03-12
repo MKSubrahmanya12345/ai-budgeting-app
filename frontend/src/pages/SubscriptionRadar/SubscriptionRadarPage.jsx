@@ -45,10 +45,10 @@ const TrendAnalysisPage = () => {
       try {
         setLoading(true);
         const [report, pred, leaks, subs] = await Promise.all([
-          api.get(`/api/ai/report/monthly?mode=\${entryMode}`),
-          api.get(`/api/ai/prediction/end-month?mode=\${entryMode}`),
-          api.get(`/api/ai/insights/leaks?mode=\${entryMode}`),
-          api.get(`/api/ai/insights/subscriptions?mode=\${entryMode}`)
+          api.get(`/api/ai/report/monthly?mode=${entryMode}`),
+          api.get(`/api/ai/prediction/end-month?mode=${entryMode}`),
+          api.get(`/api/ai/insights/leaks?mode=${entryMode}`),
+          api.get(`/api/ai/insights/subscriptions?mode=${entryMode}`)
         ]);
 
         setData({
@@ -111,7 +111,7 @@ const TrendAnalysisPage = () => {
           </div>
           <div className={`p-4 rounded-2xl border ${riskBg}`}>
             <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold mb-1">Risk Level</p>
-            <p className={`text-xl font-black capitalize \${riskColor}`}>{data.prediction?.riskLevel || "Low"}</p>
+            <p className={`text-xl font-black capitalize ${riskColor}`}>{data.prediction?.riskLevel || "Low"}</p>
           </div>
         </div>
       </div>
@@ -191,7 +191,7 @@ const TrendAnalysisPage = () => {
                   dataKey="value"
                 >
                   {categoryData.map((entry, index) => (
-                    <Cell key={`cell-\${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -234,7 +234,7 @@ const TrendAnalysisPage = () => {
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-1">Predicted Surplus</p>
-                <p className={`text-4xl font-black \${data.prediction?.predictedEndBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`text-4xl font-black ${data.prediction?.predictedEndBalance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                    {money(data.prediction?.predictedEndBalance || 0)}
                 </p>
               </div>
@@ -246,8 +246,8 @@ const TrendAnalysisPage = () => {
 
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden">
                <div 
-                 className={`h-full \${data.prediction?.predictedEndBalance >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}
-                 style={{ width: `\${Math.min(100, Math.max(0, (data.monthlyReport?.metrics?.totalIncome - data.monthlyReport?.metrics?.totalExpenses) / (data.monthlyReport?.metrics?.totalIncome || 1) * 100))}%` }}
+                 className={`h-full ${data.prediction?.predictedEndBalance >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`}
+                 style={{ width: `${Math.min(100, Math.max(0, (data.monthlyReport?.metrics?.totalIncome - data.monthlyReport?.metrics?.totalExpenses) / (data.monthlyReport?.metrics?.totalIncome || 1) * 100))}%` }}
                />
             </div>
 

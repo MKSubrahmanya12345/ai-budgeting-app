@@ -12,6 +12,7 @@ import SubscriptionRadarPage from "./pages/SubscriptionRadar/SubscriptionRadarPa
 import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
 import { useAuth } from "./context/useAuth";
+import CampusSplitterPage from "./pages/CampusSplitter/CampusSplitterPage";
 import NetBalancePrompt from "./components/NetBalancePrompt";
 
 const FullScreenLoader = () => (
@@ -71,6 +72,7 @@ function App() {
         >
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<BudgetOverviewPage />} />
+          <Route path="campus-split" element={<CampusSplitterPage />} />
           <Route path="analysis" element={<AnalysisPage />} /> 
           <Route path="affordability" element={<BudgetAffordabilityPage />} />
           <Route path="moneybuddy" element={<MoneyBuddyPage />} />

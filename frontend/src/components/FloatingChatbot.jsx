@@ -44,7 +44,7 @@ const FloatingChatbot = () => {
     const fetchChatHistory = async () => {
       setIsInitialLoading(true);
       try {
-        const response = await api.get(`/api/ai/chats/\${activeChatId}`);
+        const response = await api.get(`/api/ai/chats/${activeChatId}`);
         if (response.data.messages && response.data.messages.length > 0) {
           setChatHistory(response.data.messages);
         }
@@ -133,15 +133,15 @@ const FloatingChatbot = () => {
               chatHistory.map((message, index) => {
                 const isBuddy = message.role === 'buddy';
                 return (
-                  <div key={index} className={`flex gap-3 \${isBuddy ? 'items-start' : 'items-start flex-row-reverse'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm \${
+                  <div key={index} className={`flex gap-3 ${isBuddy ? 'items-start' : 'items-start flex-row-reverse'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${
                       isBuddy 
                         ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' 
                         : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                     }`}>
                       {isBuddy ? <Bot size={16} /> : <User size={16} />}
                     </div>
-                    <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm \${
+                    <div className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
                       isBuddy 
                         ? 'bg-slate-900 border border-slate-800 text-slate-300 rounded-tl-sm' 
                         : 'bg-indigo-600 border border-indigo-500 text-white rounded-tr-sm'
