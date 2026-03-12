@@ -6,6 +6,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true, select: false },
     refreshTokenHash: { type: String, default: null, select: false },
     monthlyBudget: { type: Number, required: true },
+    netBalance: {type: Number, default: 0},
     currency: { type: String, default: "INR" }
 }, { timestamps: true });
 

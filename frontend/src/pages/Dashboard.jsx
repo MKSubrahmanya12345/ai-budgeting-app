@@ -367,7 +367,7 @@ const Dashboard = () => {
             {[
               { label: "Income", value: money(stats.totalIncome), icon: Wallet, color: "text-emerald-400" },
               { label: "Expenses", value: money(stats.totalExpenses), icon: Wallet, color: "text-red-400" },
-              { label: "Net Balance", value: money(stats.netBalance), icon: PiggyBank, color: "text-cyan-400" },
+              { label: "Net Balance", value: money(user.netBalance), icon: PiggyBank, color: "text-cyan-400" },
               { label: "Budget Left", value: money(budgetLeft), icon: PiggyBank, color: "text-indigo-400" },
             ].map((card) => (
               <article key={card.label} className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">

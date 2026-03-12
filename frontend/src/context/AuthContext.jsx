@@ -8,8 +8,11 @@ export const AuthProvider = ({ children }) => {
 
   const refreshSession = async () => {
     try {
-      const { data } = await api.get("/api/auth/me");
+      const { data, status } = await api.get("/api/auth/me");
       setUser(data.user);
+      if (status === 206) {
+        return data.user;
+      }
       return data.user;
     } catch {
       setUser(null);
@@ -38,6 +41,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateNetBalance = async (netBalance) => {
+    await api.patch('/api/auth/net-balance', { netBalance });
+    await refreshSession();
+  }
+
   useEffect(() => {
     refreshSession();
   }, []);
@@ -51,6 +59,7 @@ export const AuthProvider = ({ children }) => {
       register,
       logout,
       refreshSession,
+      updateNetBalance,
       setUser,
     }),
     [user, isAuthLoading],

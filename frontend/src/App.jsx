@@ -8,6 +8,7 @@ import BudgetAffordabilityPage from "./pages/budget/BudgetAffordabilityPage";
 import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
 import { useAuth } from "./context/useAuth";
+import NetBalancePrompt from "./components/NetBalancePrompt";
 
 const FullScreenLoader = () => (
   <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
@@ -16,13 +17,21 @@ const FullScreenLoader = () => (
 );
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, isAuthLoading } = useAuth();
+  const { user, isAuthenticated, isAuthLoading } = useAuth();
 
   if (isAuthLoading) {
     return <FullScreenLoader />;
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user.netBalance || user.netBalance === 0) {
+    return <NetBalancePrompt />;
+  }
+
+  return children;
 };
 
 const PublicOnlyRoute = ({ children }) => {

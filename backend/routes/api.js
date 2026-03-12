@@ -3,6 +3,7 @@ const router = express.Router();
 
 // Import Controllers
 import { login, logout, me, refresh, register, updateBudget } from "../controllers/auth.controller.js";
+import { updateNetBalance } from "../controllers/netBalance.controller.js";
 
 import {
   createSmartExpense,
@@ -55,6 +56,7 @@ router.post("/auth/refresh", refresh);
 router.post("/auth/logout", logout);
 router.get("/auth/me", authMiddleware, me);
 router.patch("/auth/budget", authMiddleware, updateBudget);
+router.patch("/auth/net-balance", authMiddleware, updateNetBalance);
 
 // Protected Routes (Require Auth)
 router.post("/transactions", authMiddleware, createTransaction);
