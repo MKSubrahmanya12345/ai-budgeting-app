@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "../../context/useAuth";
 import api from "../../lib/api";
 import { Send, Bot, User, Loader2, Sparkles, Plus, MessageSquare } from "lucide-react";
@@ -6,7 +6,7 @@ import ReactMarkdown from "react-markdown";
 
 const MoneyBuddyPage = () => {
   const { user } = useAuth();
-  const defaultWelcome = { role: 'buddy', text: `Hey ${user?.name || 'there'}! I'm your **Money Buddy**. \n\nAsk me anything about your spending, goals, or budget and I'll help you out. Let's make your money work for you! 💪` };
+  const defaultWelcome = useMemo(() => ({ role: 'buddy', text: `Hey ${user?.name || 'there'}! I'm your **Money Buddy**. \n\nAsk me anything about your spending, goals, or budget and I'll help you out. Let's make your money work for you! 💪` }), [user?.name]);
   
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
@@ -61,7 +61,7 @@ const MoneyBuddyPage = () => {
     };
 
     fetchChatHistory();
-  }, [activeChatId]);
+  }, [activeChatId, defaultWelcome]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -186,13 +186,13 @@ const MoneyBuddyPage = () => {
                     <div className="text-slate-300">
                       <ReactMarkdown 
                         components={{
-                          p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-semibold text-cyan-300" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
-                          li: ({node, ...props}) => <li className="" {...props} />,
-                          h3: ({node, ...props}) => <h3 className="text-white font-semibold mt-3 mb-1 text-sm" {...props} />,
-                          h4: ({node, ...props}) => <h4 className="text-white font-medium mt-2 mb-1 text-sm" {...props} />
+                          p: ({...props}) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                          strong: ({...props}) => <strong className="font-semibold text-cyan-300" {...props} />,
+                          ul: ({...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                          ol: ({...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                          li: ({...props}) => <li className="" {...props} />,
+                          h3: ({...props}) => <h3 className="text-white font-semibold mt-3 mb-1 text-sm" {...props} />,
+                          h4: ({...props}) => <h4 className="text-white font-medium mt-2 mb-1 text-sm" {...props} />
                         }}
                       >
                         {message.text}

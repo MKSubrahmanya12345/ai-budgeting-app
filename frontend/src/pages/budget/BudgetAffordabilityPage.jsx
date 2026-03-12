@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Loader2,
-  PiggyBank,
   Sparkles,
   Target,
-  Trash2,
   Wallet,
   PlusCircle,
   Wand2,
@@ -23,22 +21,10 @@ const getToday = () => {
   return `${y}-${m}-${day}`;
 };
 
-const formatDate = (value) => {
-  if (!value) return "No deadline";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "No deadline";
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
 const BudgetAffordabilityPage = () => {
-  const { money, notify, refreshData } = useBudgetOutlet();
+  const { notify, refreshData } = useBudgetOutlet();
 
   const [goals, setGoals] = useState([]);
-  const [loadingGoals, setLoadingGoals] = useState(true);
   const [busy, setBusy] = useState(false);
 
   const [goalForm, setGoalForm] = useState({
@@ -48,7 +34,6 @@ const BudgetAffordabilityPage = () => {
     note: "",
   });
 
-  const [contributionMap, setContributionMap] = useState({});
 
   const [affordabilityForm, setAffordabilityForm] = useState({
     itemName: "",
@@ -68,13 +53,10 @@ const BudgetAffordabilityPage = () => {
 
   const loadGoals = useCallback(async () => {
     try {
-      setLoadingGoals(true);
       const { data } = await api.get("/api/goals");
       setGoals(Array.isArray(data) ? data : []);
     } catch {
       notify("error", "Could not load savings goals.");
-    } finally {
-      setLoadingGoals(false);
     }
   }, [notify]);
 
@@ -82,10 +64,6 @@ const BudgetAffordabilityPage = () => {
     loadGoals();
   }, [loadGoals]);
 
-  const totalGoalRemaining = useMemo(
-    () => goals.reduce((sum, goal) => sum + Number(goal.remainingAmount || 0), 0),
-    [goals]
-  );
 
   const handleCreateGoal = async (event) => {
     event.preventDefault();
@@ -119,53 +97,6 @@ const BudgetAffordabilityPage = () => {
       notify("success", "Savings goal created.");
     } catch (error) {
       notify("error", error.response?.data?.message || "Could not create goal.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleContribute = async (goal) => {
-    const amount = Number(contributionMap[goal._id] || 0);
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      notify("error", "Enter a valid contribution amount.");
-      return;
-    }
-
-    try {
-      setBusy(true);
-
-      await api.post(`/api/goals/${goal._id}/contribute`, {
-        amount,
-        transactionDate: getToday(),
-      });
-
-      setContributionMap((prev) => ({
-        ...prev,
-        [goal._id]: "",
-      }));
-
-      await Promise.all([loadGoals(), refreshData()]);
-
-      notify("success", "Contribution added and logged in transactions.");
-    } catch (error) {
-      notify("error", error.response?.data?.message || "Could not contribute to goal.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleDeleteGoal = async (goalId) => {
-    try {
-      setBusy(true);
-
-      await api.delete(`/api/goals/${goalId}`);
-
-      await loadGoals();
-
-      notify("success", "Goal archived.");
-    } catch (error) {
-      notify("error", error.response?.data?.message || "Could not remove goal.");
     } finally {
       setBusy(false);
     }

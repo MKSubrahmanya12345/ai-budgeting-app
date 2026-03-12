@@ -2,31 +2,36 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 //$$$$$$
 import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   LayoutDashboard,
-  Loader2,
-  LogOut,
-  PlusCircle,
-  ReceiptText,
-  RefreshCcw,
-  Settings,
+  PieChart,
   Sparkles,
   Zap,
-  PieChart, //$$$$$$
   Bot,
-  BookOpen, // Added BookOpen for Courses
+  Rocket,
+  ToggleLeft,
+  ToggleRight,
+  BookOpen,
+  TrendingUp,
+  ReceiptText,
+  CalendarDays,
+  Settings,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCcw,
+  Loader2,
 } from "lucide-react";
 import api from "../../lib/api";
 import { formatMonthKey, monthTitle } from "../../lib/budget";
 import { useAuth } from "../../context/useAuth";
+import FloatingChatbot from "../../components/FloatingChatbot";
 
 const navItems = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/dashboard/analysis", label: "Analysis", icon: PieChart }, //$$$$$$
   { to: "/dashboard/affordability", label: "Affordability AI", icon: Sparkles },
-  { to: "/dashboard/moneybuddy", label: "MoneyBuddy", icon: Bot },
+  { to: "/dashboard/simulator", label: "Future Simulator", icon: Rocket },
+  { to: "/dashboard/trends", label: "Trend Analysis", icon: TrendingUp },
   { to: "/dashboard/courses", label: "Money Courses", icon: BookOpen },
   { to: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/dashboard/transactions", label: "Transactions", icon: ReceiptText },
@@ -41,6 +46,7 @@ const BudgetLayout = () => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [entryMode, setEntryMode] = useState("actual");
   const [transactions, setTransactions] = useState([]);
   const [calendarSummary, setCalendarSummary] = useState([]);
   const [stats, setStats] = useState({
@@ -97,7 +103,7 @@ const BudgetLayout = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const params = { month: monthKey, mode: "actual" };
+      const params = { month: monthKey, mode: entryMode };
       const [transactionsResponse, statsResponse, calendarResponse] = await Promise.all([
         api.get("/api/transactions", { params }),
         api.get("/api/transactions/stats", { params }),
@@ -116,7 +122,7 @@ const BudgetLayout = () => {
     } finally {
       setLoading(false);
     }
-  }, [monthKey, navigate, notify]);
+  }, [monthKey, navigate, notify, entryMode]);
 
   useEffect(() => {
     fetchData();
@@ -130,7 +136,7 @@ const BudgetLayout = () => {
   const handleSeedSample = async () => {
     try {
       setBusyAction(true);
-      await api.post("/api/transactions/seed", { entryMode: "actual" });
+      await api.post("/api/transactions/seed", { entryMode });
       await fetchData();
       notify("success", "Sample transactions added.");
     } catch {
@@ -176,6 +182,7 @@ const BudgetLayout = () => {
     notify,
     busyAction,
     setBusyAction,
+    entryMode,
   };
 
   return (
@@ -212,13 +219,28 @@ const BudgetLayout = () => {
             </nav>
 
             <div className="space-y-2.5 border-t border-slate-800 pt-4">
-              <button
-                onClick={handleSeedSample}
-                disabled={busyAction}
-                className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 px-3 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+              <div 
+                className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors" 
+                onClick={() => setEntryMode(entryMode === "actual" ? "demo" : "actual")}
               >
-                <PlusCircle size={14} /> Load Sample
-              </button>
+                <div>
+                   <p className="text-sm font-semibold text-white">Data Mode</p>
+                   <p className="text-xs text-slate-500">{entryMode === 'actual' ? 'Normal Mode' : 'Demo Mode'}</p>
+                </div>
+                <div className={`p-1.5 rounded-lg ${entryMode === 'demo' ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                   {entryMode === 'demo' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                </div>
+              </div>
+
+              {entryMode === 'demo' && (
+                <button
+                  onClick={handleSeedSample}
+                  disabled={busyAction}
+                  className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 px-3 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  <PlusCircle size={14} /> Load Sample
+                </button>
+              )}
               <button
                 onClick={fetchData}
                 disabled={busyAction}
@@ -305,6 +327,9 @@ const BudgetLayout = () => {
           </main>
         </div>
       </div>
+      
+      {/* Global AI Floating Chatbot */}
+      <FloatingChatbot />
     </div>
   );
 };

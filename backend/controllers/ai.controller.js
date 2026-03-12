@@ -476,10 +476,14 @@ export const getMonthlyAiReport = async (req, res) => {
   try {
     const { start, end } = getMonthRangeFromDate(new Date());
 
-    const transactions = await Expense.find({
+    const filter = { 
       userId: req.user.id,
-      transactionDate: { $gte: start, $lt: end },
-    });
+      transactionDate: { $gte: start, $lt: end }
+    };
+    if (req.query.mode === "demo") filter.entryMode = "demo";
+    else if (req.query.mode === "actual") filter.entryMode = { $ne: "demo" };
+
+    const transactions = await Expense.find(filter);
 
     const totalIncome = transactions
       .filter((t) => t.type === "income")
@@ -525,10 +529,14 @@ export const getEndOfMonthPrediction = async (req, res) => {
     const today = new Date();
     const { start, end } = getMonthRangeFromDate(today);
 
-    const transactions = await Expense.find({
+    const filter = { 
       userId: req.user.id,
-      transactionDate: { $gte: start, $lt: today },
-    });
+      transactionDate: { $gte: start, $lt: today }
+    };
+    if (req.query.mode === "demo") filter.entryMode = "demo";
+    else if (req.query.mode === "actual") filter.entryMode = { $ne: "demo" };
+
+    const transactions = await Expense.find(filter);
 
     const daysPassed = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
@@ -569,10 +577,14 @@ export const detectSpendingLeaks = async (req, res) => {
   try {
     const { start, end } = getMonthRangeFromDate(new Date());
 
-    const transactions = await Expense.find({
+    const filter = { 
       userId: req.user.id,
-      transactionDate: { $gte: start, $lt: end },
-    });
+      transactionDate: { $gte: start, $lt: end }
+    };
+    if (req.query.mode === "demo") filter.entryMode = "demo";
+    else if (req.query.mode === "actual") filter.entryMode = { $ne: "demo" };
+
+    const transactions = await Expense.find(filter);
 
     const categoryCounts = {};
     const categoryTotals = {};
@@ -607,9 +619,11 @@ export const detectSpendingLeaks = async (req, res) => {
 
 export const detectSubscriptions = async (req, res) => {
   try {
-    const transactions = await Expense.find({
-      userId: req.user.id,
-    });
+    const filter = { userId: req.user.id };
+    if (req.query.mode === "demo") filter.entryMode = "demo";
+    else if (req.query.mode === "actual") filter.entryMode = { $ne: "demo" };
+
+    const transactions = await Expense.find(filter);
 
     const merchantMap = {};
 
@@ -685,10 +699,14 @@ export const getWeeklyAiCheckin = async (req, res) => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const transactions = await Expense.find({
+    const filter = { 
       userId: req.user.id,
-      transactionDate: { $gte: weekAgo, $lte: now },
-    });
+      transactionDate: { $gte: weekAgo, $lte: now }
+    };
+    if (req.query.mode === "demo") filter.entryMode = "demo";
+    else if (req.query.mode === "actual") filter.entryMode = { $ne: "demo" };
+
+    const transactions = await Expense.find(filter);
 
     const totalSpent = transactions
       .filter((t) => t.type !== "income")

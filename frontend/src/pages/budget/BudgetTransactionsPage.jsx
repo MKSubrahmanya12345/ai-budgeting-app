@@ -13,7 +13,7 @@ import api from "../../lib/api";
 import { categoriesByType, toInputDate, typeOptions } from "../../lib/budget";
 import { useBudgetOutlet } from "./useBudgetOutlet";
 
-const sampleFilterOptions = ["all", "sample", "manual"];
+
 
 const CATEGORY_STYLES = {
   // Expense
@@ -37,12 +37,12 @@ const CATEGORY_STYLES = {
 const getCategoryStyle = (category) => CATEGORY_STYLES[category] || CATEGORY_STYLES["Other"];
 
 const BudgetTransactionsPage = () => {
-  const { transactions, refreshData, money, notify, busyAction, setBusyAction } = useBudgetOutlet();
+  const { transactions, refreshData, money, notify, busyAction, setBusyAction, entryMode } = useBudgetOutlet();
   const fileInputRef = useRef(null);
 
   const [searchText, setSearchText] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [sampleFilter, setSampleFilter] = useState("all");
+  const [sampleFilter] = useState("all");
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -83,7 +83,7 @@ const BudgetTransactionsPage = () => {
 
       await api.post("/api/transactions/import/pdf", { 
         transactions: extractedTxs,
-        entryMode: "actual" 
+        entryMode: entryMode || "actual" 
       });
 
       await refreshData();
@@ -217,7 +217,7 @@ const BudgetTransactionsPage = () => {
         Sample rows loaded: <b>{sampleCount}</b>.
       </div>
 
-      <SmartInput onTransactionAdded={refreshData} />
+      <SmartInput onTransactionAdded={refreshData} entryMode={entryMode} />
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">

@@ -1,0 +1,62 @@
+﻿
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\components\FloatingChatbot.jsx
+  9:9  warning  The 'defaultWelcome' object makes the dependencies of useEffect Hook (at line 59) change on every render. To fix this, wrap the initialization of 'defaultWelcome' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\components\MarketRates.jsx
+  30:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  28 |
+  29 |   useEffect(() => {
+> 30 |     fetchRates();
+     |     ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |   }, []);
+  32 |
+  33 |   return (  react-hooks/set-state-in-effect
+
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\context\AuthContext.jsx
+  65:5  warning  React Hook useMemo has a missing dependency: 'updateNetBalance'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\pages\FutureSimulator\FutureSimulatorPage.jsx
+  235:40  error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  233 |                       axisLine={false}
+  234 |                     />
+> 235 |                     <Tooltip content={<CustomTooltip />} />
+      |                                        ^^^^^^^^^^^^^ This component is created during render
+  236 |                     <Area type="monotone" dataKey="normal" stroke="#64748b" strokeWidth={2} fillOpacity={1} fill="url(#colorNormal)" />
+  237 |                     <Area type="monotone" dataKey="optimized" stroke="#22d3ee" strokeWidth={3} fillOpacity={1} fill="url(#colorOptimized)" />
+  238 |                   </AreaChart>
+
+  71 |   const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+  72 |
+> 73 |   const CustomTooltip = ({ active, payload, label }) => {
+     |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 74 |     if (active && payload && payload.length) {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |       return (
+     ΓÇª
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 91 |     return null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 92 |   };
+     | ^^^^ The component is created during render here
+  93 |
+  94 |   return (
+  95 |     <div className="space-y-6">  react-hooks/static-components
+
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\pages\MoneyBuddy\MoneyBuddyPage.jsx
+  9:9  warning  The 'defaultWelcome' object makes the dependencies of useEffect Hook (at line 64) change on every render. To fix this, wrap the initialization of 'defaultWelcome' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\User\Desktop\canara new after merge issue\final1\frontend\src\pages\budget\BudgetAffordabilityPage.jsx
+  25:11  error  'money' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+Γ£û 6 problems (3 errors, 3 warnings)
+

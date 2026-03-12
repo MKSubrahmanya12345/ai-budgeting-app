@@ -15,7 +15,7 @@ const getToday = () => {
   return `${y}-${m}-${day}`;
 };
 
-const SmartInput = ({ onTransactionAdded }) => {
+const SmartInput = ({ onTransactionAdded, entryMode }) => {
   const [type, setType] = useState("expense");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -93,7 +93,7 @@ const SmartInput = ({ onTransactionAdded }) => {
           amount: parsedAmount,
           transactionDate,
           type,
-          entryMode: "actual",
+          entryMode: entryMode || "actual",
         });
       } else {
         await api.post("/api/transactions", {
@@ -104,7 +104,7 @@ const SmartInput = ({ onTransactionAdded }) => {
           category,
           note,
           isEssential: type === "expense" ? isEssential : true,
-          entryMode: "actual",
+          entryMode: entryMode || "actual",
         });
       }
 

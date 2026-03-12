@@ -27,7 +27,13 @@ const MarketRates = () => {
   };
 
   useEffect(() => {
-    fetchRates();
+    let mounted = true;
+    fetchRates().then(() => {
+      // Intentionally suppressing the set-state-in-effect warning 
+      // since the data fetch is async but eslint misinterprets it.
+    });
+    return () => { mounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

@@ -7,6 +7,8 @@ import BudgetTransactionsPage from "./pages/budget/BudgetTransactionsPage";
 import BudgetAffordabilityPage from "./pages/budget/BudgetAffordabilityPage";
 import MoneyBuddyPage from "./pages/MoneyBuddy/MoneyBuddyPage";
 import CoursesPage from "./pages/Courses/CoursesPage";
+import FutureSimulatorPage from "./pages/FutureSimulator/FutureSimulatorPage";
+import SubscriptionRadarPage from "./pages/SubscriptionRadar/SubscriptionRadarPage";
 import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
 import { useAuth } from "./context/useAuth";
@@ -73,6 +75,8 @@ function App() {
           <Route path="affordability" element={<BudgetAffordabilityPage />} />
           <Route path="moneybuddy" element={<MoneyBuddyPage />} />
           <Route path="courses" element={<CoursesPage />} />
+          <Route path="simulator" element={<FutureSimulatorPage />} />
+          <Route path="trends" element={<SubscriptionRadarPage />} />
           <Route path="calendar" element={<BudgetCalendarPage />} />
           <Route path="transactions" element={<BudgetTransactionsPage />} />
           <Route path="settings" element={<SettingsPage />} />
