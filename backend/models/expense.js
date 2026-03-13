@@ -29,6 +29,8 @@ const expenseSchema = new mongoose.Schema({
         default: "upi"
     },
     nudge: { type: String }, // The AI's advice string
+    merchantId: { type: String }, // Link to OSM or Place ID
+    merchantName: { type: String }, // Display name of the store
     date: { type: Date, default: Date.now }
 }, { timestamps: true });
 

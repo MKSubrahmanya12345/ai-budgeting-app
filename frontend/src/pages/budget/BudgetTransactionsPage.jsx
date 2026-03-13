@@ -53,6 +53,7 @@ const BudgetTransactionsPage = () => {
     paymentMode: "upi",
     transactionDate: "",
     note: "",
+    merchantName: "",
   });
 
   const sampleCount = transactions.filter((txn) => txn.isSample).length;
@@ -159,6 +160,7 @@ const BudgetTransactionsPage = () => {
       paymentMode: txn.paymentMode || "upi",
       transactionDate: toInputDate(txn.transactionDate || txn.createdAt),
       note: txn.note || "",
+      merchantName: txn.merchantName || "",
     });
   };
 
@@ -315,6 +317,12 @@ const BudgetTransactionsPage = () => {
                               placeholder="Note"
                               className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
                             />
+                            <input
+                              value={editForm.merchantName}
+                              onChange={(e) => setEditForm((p) => ({ ...p, merchantName: e.target.value }))}
+                              placeholder="Store/Merchant"
+                              className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
+                            />
                             <div className="flex items-center gap-1 justify-end">
                               <button onClick={() => saveEdit(txn._id)} className="px-3 py-2 rounded-lg bg-cyan-500/15 text-cyan-400 hover:bg-cyan-500/25 text-xs font-medium transition-colors">Save</button>
                               <button onClick={cancelEditing} className="px-3 py-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white text-xs font-medium transition-colors">Cancel</button>
@@ -330,6 +338,12 @@ const BudgetTransactionsPage = () => {
                                 <p className="font-semibold text-slate-100 truncate text-sm mb-0.5">{txn.description}</p>
                                 <div className="flex items-center gap-2 text-xs text-slate-500">
                                   <span>{txn.category}</span>
+                                  {txn.merchantName && (
+                                    <>
+                                       <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                                       <span className="text-indigo-400 font-bold">@ {txn.merchantName}</span>
+                                    </>
+                                  )}
                                   {txn.note && (
                                     <>
                                       <span className="w-1 h-1 rounded-full bg-slate-700"></span>

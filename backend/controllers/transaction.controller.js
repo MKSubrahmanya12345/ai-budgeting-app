@@ -144,6 +144,8 @@ const normalizeTransactionPayload = (payload = {}, fallbackType = "expense") => 
       note: String(payload.note || "").trim(),
       isEssential: payload.isEssential !== undefined ? Boolean(payload.isEssential) : type === "expense",
       nudge: String(payload.nudge || "").trim(),
+      merchantId: payload.merchantId,
+      merchantName: payload.merchantName,
     },
   };
 };

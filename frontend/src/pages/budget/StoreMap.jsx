@@ -21,9 +21,13 @@ L.Icon.Default.mergeOptions({
 });
 
 // Helper component to handle map re-centering when props change
-const ChangeView = ({ center, zoom }) => {
+const ChangeView = ({ center, zoom, isDragging }) => {
   const map = useMap();
-  map.setView(center, zoom);
+  useEffect(() => {
+    if (!isDragging) {
+      map.setView(center, zoom, { animate: true });
+    }
+  }, [center, zoom, isDragging, map]);
   return null;
 };
 
@@ -44,7 +48,9 @@ const StoreMap = ({
   const [activeRoute, setActiveRoute] = useState(null);
   const [routingInfo, setRoutingInfo] = useState(null);
   const [nearestPlace, setNearestPlace] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const alertedIdRef = useRef(null);
+  const isDraggingRef = useRef(false);
 
   // Clear route when center changes significantly
   useEffect(() => {
@@ -131,6 +137,24 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
     return '#ef4444'; // Red
   };
 
+  const handlePointerPayment = async (place) => {
+    try {
+      await api.post('/api/transactions/ai-add', {
+        description: `Visit to ${place.name}`,
+        amount: place.avg_cost || 500,
+        merchantId: place.id,
+        merchantName: place.name,
+        category: place.category || 'Food',
+        type: 'expense',
+        paymentMode: 'upi',
+        entryMode: place.isDemo ? 'demo' : 'actual'
+      });
+      notify('success', `Payment linked to ${place.name}! 💸`);
+    } catch (e) {
+      notify('error', 'Could not link transaction.');
+    }
+  };
+
   return (
     <div className="w-full h-full rounded-xl overflow-hidden border border-slate-800 shadow-inner min-h-[400px]">
       <MapContainer 
@@ -139,7 +163,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%', background: '#020617' }}
       >
-        <ChangeView center={center} zoom={zoom} />
+        <ChangeView center={center} zoom={zoom} isDragging={isDraggingRef.current} />
         <MapEvents />
         
         <LayersControl position="topright">
@@ -268,7 +292,9 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
           draggable={true}
           eventHandlers={{
             dragstart: () => {
-              notify('info', 'Radar Scanner Active: Drag over venues for risk analysis');
+              isDraggingRef.current = true;
+              setIsRefreshing(prev => !prev); // Trigger re-render to update ChangeView prop
+              notify('info', 'Radar Scanner Active: Identifying nearby venues...');
             },
             drag: (e) => {
               const pos = e.target.getLatLng();
@@ -313,6 +339,8 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
               }
             },
             dragend: (e) => {
+              isDraggingRef.current = false;
+              setIsRefreshing(prev => !prev);
               const marker = e.target;
               const position = marker.getLatLng();
               if (onLocationChange) {
@@ -322,27 +350,43 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
           }}
         >
           <Popup>
-            <div className="text-xs p-1 min-w-[150px]">
-              <strong className="text-indigo-400 uppercase tracking-tighter">Budget Scanner</strong>
+            <div className="text-xs p-1 min-w-[200px] bg-slate-950 text-white rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                 <strong className="text-indigo-400 uppercase tracking-tighter flex items-center gap-1">
+                   <Zap size={12} className="fill-current" /> Scanner
+                 </strong>
+                 <span className="text-[10px] text-slate-500 font-mono">DRAG TO SCOUT</span>
+              </div>
               
-              {nearestPlace && L.latLng(center).distanceTo(L.latLng(placeToPos(nearestPlace))) < 300 ? (
-                <div className="mt-2 space-y-2 animate-in fade-in duration-300">
-                   <p className="text-[10px] text-slate-400">Locked on: <span className="text-white font-bold">{nearestPlace.name}</span></p>
+              {nearestPlace && L.latLng(center).distanceTo(L.latLng(placeToPos(nearestPlace))) < 400 ? (
+                <div className="space-y-3 animate-in zoom-in-95 duration-300">
+                   <div className="p-2 bg-white/5 rounded-lg border border-white/5">
+                      <p className="text-[10px] text-slate-400 mb-1">Locked Identity:</p>
+                      <h4 className="text-sm font-black text-white leading-tight">{nearestPlace.name}</h4>
+                      <p className="text-[10px] text-indigo-400 mt-1 uppercase font-bold tracking-widest">{nearestPlace.category || nearestPlace.type}</p>
+                   </div>
+
+                   <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-slate-400">Est. Price:</span>
+                      <span className="text-emerald-400 font-bold">₹{nearestPlace.avg_cost || '???'}</span>
+                   </div>
+
                    <button 
-                      onClick={() => notify('success', `Payment tracked for ${nearestPlace.name}`)}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                      onClick={() => handlePointerPayment(nearestPlace)}
+                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                    >
-                     <CreditCard size={12} /> Pay Now
+                     <CreditCard size={12} /> Link & Pay
                    </button>
                 </div>
               ) : (
-                <p className="text-slate-500 text-[10px] mt-2 italic">Drag near a shop to enable Fast Pay.</p>
+                <div className="py-4 text-center">
+                   <div className="w-8 h-8 rounded-full border-2 border-dashed border-slate-700 animate-spin mx-auto mb-2" />
+                   <p className="text-slate-500 text-[10px] italic">Scouting nearby venues...</p>
+                </div>
               )}
             </div>
           </Popup>
         </Marker>
-
-        {/* Interactive Pointer (The Smart Search Center) */}
 
         {/* Business/Deal Markers */}
         {places.map((place) => {
