@@ -298,7 +298,12 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
             },
             drag: (e) => {
               const pos = e.target.getLatLng();
+              const now = Date.now();
               
+              // Throttle to 100ms for smoother dragging
+              if (now - (window._lastDragTime || 0) < 100) return;
+              window._lastDragTime = now;
+
               let minDist = Infinity;
               let closest = null;
               
@@ -318,19 +323,23 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
 
               const warningPlace = places.find(p => {
                 const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
-                return dist < 200; // Increased to 200m for better sensitivity
+                return dist < 150; // slightly tighter for better accuracy
               });
 
               if (warningPlace) {
                 if (alertedIdRef.current !== warningPlace.id) {
-                  const categoryName = (warningPlace.category || warningPlace.type || "other").toLowerCase();
-                  const categoryTxns = transactions.filter(t => t.category.toLowerCase() === categoryName);
-                  const totalSpent = categoryTxns.reduce((sum, t) => sum + t.amount, 0);
-                  const isRegular = categoryTxns.length >= 2; // Trigger on 2 visits instead of 3
-
-                  // Lowered threshold to ₹500 so user can see it working easily
-                  if (totalSpent > 500 || isRegular || warningPlace.isDemo) {
-                    notify('error', `Budget Alert: High ${categoryName} leak detected at ${warningPlace.name}!`);
+                  // Filter by BOTH name/id and category for better alerts
+                  const merchantTxns = transactions.filter(t => 
+                    t.merchantName === warningPlace.name || 
+                    t.merchantId === warningPlace.id ||
+                    (t.category.toLowerCase() === (warningPlace.category || warningPlace.type || "").toLowerCase())
+                  );
+                  
+                  const totalSpent = merchantTxns.reduce((sum, t) => sum + t.amount, 0);
+                  
+                  if (totalSpent > 0 || warningPlace.isDemo) {
+                    const displayAmount = totalSpent > 0 ? totalSpent : (warningPlace.avg_cost || 500);
+                    notify('warning', `You spent ₹${displayAmount} here already. Do you want to go?`);
                     alertedIdRef.current = warningPlace.id;
                   }
                 }
@@ -375,7 +384,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
                       onClick={() => handlePointerPayment(nearestPlace)}
                       className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
                    >
-                     <CreditCard size={12} /> Link & Pay
+                     <CreditCard size={12} /> Confirm Transaction
                    </button>
                 </div>
               ) : (
