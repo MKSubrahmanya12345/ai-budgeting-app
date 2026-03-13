@@ -59,8 +59,16 @@ const StoreMap = ({
   const [routingInfo, setRoutingInfo] = useState(null);
   const [nearestPlace, setNearestPlace] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [markerPos, setMarkerPos] = useState(center);
   const alertedIdRef = useRef(null);
   const isDraggingRef = useRef(false);
+
+  // Sync marker position with center ONLY when not dragging
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setMarkerPos(center);
+    }
+  }, [center]);
 
   // Use refs for items used in event handlers to avoid stale closures
   const notifyRef = useRef(notify);
@@ -302,7 +310,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
 
         {/* Interactive Pointer (The Smart Search Center) */}
         <Marker 
-          position={center} 
+          position={markerPos} 
           icon={pointerIcon}
           draggable={true}
           eventHandlers={{
@@ -313,6 +321,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
             },
             drag: (e) => {
               const pos = e.target.getLatLng();
+              setMarkerPos([pos.lat, pos.lng]); // Update local pos so it doesn't snap back
               
               const now = Date.now();
               if (now - (window._lastDragTime || 0) < 50) return;

@@ -24,6 +24,7 @@ import {
   Users,
   HandCoins,
   ShieldAlert,
+  AlertTriangle,
   X,
   Menu,
 } from "lucide-react";
