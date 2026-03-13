@@ -2,7 +2,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap, Rectangle, Circle, Poly
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { CreditCard, AlertTriangle, Target } from 'lucide-react';
+import { CreditCard, AlertTriangle, Target, Zap } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 const { BaseLayer } = LayersControl;
