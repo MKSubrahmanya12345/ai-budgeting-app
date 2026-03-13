@@ -6,8 +6,10 @@ import { useBudgetOutlet } from "./useBudgetOutlet";
 import { useAuth } from "../../context/useAuth";
 import MarketRates from "../../components/MarketRates";
 
+import api from "../../lib/api";
+
 const BudgetOverviewPage = () => {
-  const { stats, calendarSummary, transactions, money, currentMonth } = useBudgetOutlet();
+  const { stats, calendarSummary, transactions, money, currentMonth, refreshData, notify, setBusyAction, busyAction, entryMode } = useBudgetOutlet();
   const { user } = useAuth();
 
   const chartData = useMemo(() => {
@@ -29,9 +31,69 @@ const BudgetOverviewPage = () => {
     const daysRemaining = Math.max(lastDayOfMonth - today.getDate() + 1, 1);
     return budgetLeft / daysRemaining;
   }, [budgetLeft]);
-
   return (
     <div className="space-y-8 pb-32 lg:pb-12 animate-neo-slide">
+      {/* Intelligence Simulation Node Control */}
+      {(transactions.length === 0 || entryMode === 'demo') && (
+        <section className="rounded-[3rem] neo-glass neo-shadow p-10 flex flex-col lg:flex-row items-center justify-between gap-10 animate-neo-glow relative overflow-hidden transition-all duration-500">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-600/5 blur-[80px] -ml-32 -mt-32" />
+          <div className="flex items-center gap-8 relative z-10">
+             <div className="relative group">
+               <div className="absolute inset-0 bg-indigo-600 blur-2xl opacity-20 group-hover:opacity-40 transition-opacity" />
+               <div className="relative p-5 rounded-[2rem] bg-indigo-600 shadow-2xl shadow-indigo-600/40 transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
+                 <Zap size={32} className="text-white fill-current" />
+               </div>
+             </div>
+             <div>
+               <h3 className="text-2xl font-black text-white tracking-tighter uppercase mb-1">Intelligence Simulation</h3>
+               <p className="text-slate-400 text-base font-medium leading-relaxed max-w-md">
+                 Initialize your financial ecosystem with optimized student data models or purge for a clean state. Both <span className="text-emerald-400">Income</span> and <span className="text-red-400">Expenses</span> included.
+               </p>
+             </div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto relative z-10">
+            <button 
+              onClick={async () => {
+                try {
+                  setBusyAction(true);
+                  await api.post("/api/transactions/seed", { entryMode });
+                  await refreshData();
+                  notify("success", "Simulation data established.");
+                } catch {
+                  notify("error", "Failed to initialize simulation.");
+                } finally {
+                  setBusyAction(false);
+                }
+              }}
+              disabled={busyAction}
+              className="w-full sm:w-auto px-10 py-5 rounded-[1.8rem] bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-[0.25em] transition-all active:scale-95 shadow-2xl shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              <Rocket size={18} /> Establish Demo Node
+            </button>
+            <button 
+               onClick={async () => {
+                if (!window.confirm("Purge Node state? All simulation data in this mode will be destroyed.")) return;
+                try {
+                  setBusyAction(true);
+                  await api.delete("/api/transactions/clear", { params: { mode: entryMode } });
+                  await refreshData();
+                  notify("success", "Node state purged.");
+                } catch {
+                  notify("error", "Failed to clear state.");
+                } finally {
+                  setBusyAction(false);
+                }
+              }}
+              disabled={busyAction}
+              className="w-full sm:w-auto px-10 py-5 rounded-[1.8rem] bg-white/5 hover:bg-red-500/10 text-slate-500 hover:text-red-400 text-[10px] font-black uppercase tracking-[0.25em] transition-all border border-white/5 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+            >
+              <Trash2 size={18} /> Purge Node
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* Premium Hero Header */}
       <div className="relative overflow-hidden rounded-[3rem] neo-glass neo-shadow p-8 sm:p-12 border-none">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[120px] -mr-48 -mt-48" />
