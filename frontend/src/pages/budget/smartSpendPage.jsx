@@ -378,6 +378,7 @@ const SmartSpendPage = () => {
             heatmapData={heatmapData}
             heatmapVisible={showHeatmap}
             searchRadius={radius}
+            isLiveTracking={isLiveTracking}
             onLocationChange={handleManualLocationChange}
             accuracy={locationAccuracy}
             transactions={context?.transactions || []}

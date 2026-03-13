@@ -20,14 +20,23 @@ L.Icon.Default.mergeOptions({
     shadowUrl: markerShadow,
 });
 
-// Helper component to handle map re-centering when props change
-const ChangeView = ({ center, zoom, isDragging }) => {
+const ChangeView = ({ center, zoom, isDragging, isLiveTracking }) => {
   const map = useMap();
+  
   useEffect(() => {
-    if (!isDragging) {
+    // ABORT if user is dragging or manually controlling (Live Tracking OFF)
+    if (isDragging || !isLiveTracking) return;
+
+    const currentCenter = map.getCenter();
+    const dist = L.latLng(center).distanceTo(currentCenter);
+
+    // Only snap if distance is massive (e.g. initial load or teleport)
+    // This stops the "every second" jitter dead.
+    if (dist > 100) { 
       map.setView(center, zoom, { animate: true });
     }
-  }, [center, zoom, isDragging, map]);
+  }, [center, zoom, isDragging, isLiveTracking, map]);
+
   return null;
 };
 
@@ -43,6 +52,7 @@ const StoreMap = ({
   onLocationChange = null,
   accuracy = null,
   transactions = [],
+  isLiveTracking = true,
   notify = (t, m) => console.log(m)
 }) => {
   const [activeRoute, setActiveRoute] = useState(null);
@@ -113,22 +123,20 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
     });
   };
 
-  const createPointerIcon = () => {
-    return new L.DivIcon({
-      html: renderToStaticMarkup(
-        <div className="relative flex items-center justify-center">
-          <div className="absolute w-12 h-12 bg-indigo-500/20 rounded-full animate-ping" />
-          <div className="relative p-2 bg-indigo-600 rounded-full border-2 border-white shadow-2xl scale-125">
-            <Target size={16} className="text-white" />
-          </div>
+  const pointerIcon = useMemo(() => new L.DivIcon({
+    html: renderToStaticMarkup(
+      <div className="relative flex items-center justify-center">
+        <div className="absolute w-12 h-12 bg-indigo-500/20 rounded-full animate-ping" />
+        <div className="relative p-2 bg-indigo-600 rounded-full border-2 border-white shadow-2xl scale-125">
+          <Target size={16} className="text-white" />
         </div>
-      ),
-      className: 'pointer-icon',
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
-      popupAnchor: [0, -20]
-    });
-  };
+      </div>
+    ),
+    className: 'pointer-icon',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20]
+  }), []);
 
   const getMarkerColor = (price) => {
     if (!budget) return '#10b981'; // Green default
@@ -163,7 +171,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%', background: '#020617' }}
       >
-        <ChangeView center={center} zoom={zoom} isDragging={isDraggingRef.current} />
+        <ChangeView center={center} zoom={zoom} isDragging={isDraggingRef.current} isLiveTracking={isLiveTracking} />
         <MapEvents />
         
         <LayersControl position="topright">
@@ -288,7 +296,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
         {/* Interactive Pointer (The Smart Search Center) */}
         <Marker 
           position={center} 
-          icon={createPointerIcon()}
+          icon={pointerIcon}
           draggable={true}
           eventHandlers={{
             dragstart: () => {
@@ -298,12 +306,12 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
             },
             drag: (e) => {
               const pos = e.target.getLatLng();
-              const now = Date.now();
               
-              // Throttle to 100ms for smoother dragging
-              if (now - (window._lastDragTime || 0) < 100) return;
+              const now = Date.now();
+              if (now - (window._lastDragTime || 0) < 50) return; // Faster response but still throttled
               window._lastDragTime = now;
 
+              // 1. Find the nearest place for the "Radar Snap"
               let minDist = Infinity;
               let closest = null;
               
@@ -315,28 +323,27 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
                 }
               });
 
-              if (minDist < 600) { 
-                 setNearestPlace(closest);
-              } else {
-                 setNearestPlace(null);
+              // Only update state if the closest place actually changed (massive performance win)
+              if (closest?.id !== nearestPlace?.id) {
+                setNearestPlace(minDist < 600 ? closest : null);
               }
 
+              // 2. Handle the "You spent X here" alert
               const warningPlace = places.find(p => {
                 const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
-                return dist < 150; // slightly tighter for better accuracy
+                return dist < 120; // 120m is perfect for a "parking" feel
               });
 
               if (warningPlace) {
                 if (alertedIdRef.current !== warningPlace.id) {
-                  // Filter by BOTH name/id and category for better alerts
                   const merchantTxns = transactions.filter(t => 
                     t.merchantName === warningPlace.name || 
-                    t.merchantId === warningPlace.id ||
-                    (t.category.toLowerCase() === (warningPlace.category || warningPlace.type || "").toLowerCase())
+                    t.merchantId === warningPlace.id
                   );
                   
                   const totalSpent = merchantTxns.reduce((sum, t) => sum + t.amount, 0);
                   
+                  // Priority Alert: Specific Phrasing as requested
                   if (totalSpent > 0 || warningPlace.isDemo) {
                     const displayAmount = totalSpent > 0 ? totalSpent : (warningPlace.avg_cost || 500);
                     notify('warning', `You spent ₹${displayAmount} here already. Do you want to go?`);
@@ -349,48 +356,55 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
             },
             dragend: (e) => {
               isDraggingRef.current = false;
-              setIsRefreshing(prev => !prev);
               const marker = e.target;
               const position = marker.getLatLng();
+              
+              // Force one final update to sync parent
               if (onLocationChange) {
                 onLocationChange([position.lat, position.lng]);
               }
+              // Force re-render once at the end
+              setIsRefreshing(p => !p);
             },
           }}
         >
           <Popup>
-            <div className="text-xs p-1 min-w-[200px] bg-slate-950 text-white rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                 <strong className="text-indigo-400 uppercase tracking-tighter flex items-center gap-1">
-                   <Zap size={12} className="fill-current" /> Scanner
+            <div className="text-xs p-2 min-w-[220px] bg-slate-950 text-white rounded-2xl border border-white/10 shadow-2xl">
+              <div className="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+                 <strong className="text-indigo-400 uppercase tracking-tighter flex items-center gap-1.5 font-black">
+                   <Zap size={14} className="fill-current" /> Location Scout
                  </strong>
-                 <span className="text-[10px] text-slate-500 font-mono">DRAG TO SCOUT</span>
+                 <div className="px-2 py-0.5 bg-indigo-500/20 rounded text-[8px] text-indigo-300 font-bold animate-pulse">
+                   ACTIVE
+                 </div>
               </div>
               
-              {nearestPlace && L.latLng(center).distanceTo(L.latLng(placeToPos(nearestPlace))) < 400 ? (
-                <div className="space-y-3 animate-in zoom-in-95 duration-300">
-                   <div className="p-2 bg-white/5 rounded-lg border border-white/5">
-                      <p className="text-[10px] text-slate-400 mb-1">Locked Identity:</p>
-                      <h4 className="text-sm font-black text-white leading-tight">{nearestPlace.name}</h4>
-                      <p className="text-[10px] text-indigo-400 mt-1 uppercase font-bold tracking-widest">{nearestPlace.category || nearestPlace.type}</p>
-                   </div>
-
-                   <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-slate-400">Est. Price:</span>
-                      <span className="text-emerald-400 font-bold">₹{nearestPlace.avg_cost || '???'}</span>
+              {nearestPlace && L.latLng(center).distanceTo(L.latLng(placeToPos(nearestPlace))) < 450 ? (
+                <div className="space-y-4 animate-in zoom-in-95 duration-200">
+                   <div className="p-3 bg-white/5 rounded-xl border border-white/10 group-hover:bg-white/10 transition-all">
+                      <p className="text-[9px] text-slate-500 uppercase tracking-widest font-black mb-1">Target Identified</p>
+                      <h4 className="text-base font-black text-white leading-tight mb-1">{nearestPlace.name}</h4>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[10px] text-indigo-400 font-bold">{nearestPlace.category || nearestPlace.type}</span>
+                         <span className="w-1 h-1 rounded-full bg-slate-700" />
+                         <span className="text-[10px] text-emerald-400 font-bold">₹{nearestPlace.avg_cost || '???'}</span>
+                      </div>
                    </div>
 
                    <button 
                       onClick={() => handlePointerPayment(nearestPlace)}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
                    >
-                     <CreditCard size={12} /> Confirm Transaction
+                     <CreditCard size={14} /> Confirm Transaction
                    </button>
                 </div>
               ) : (
-                <div className="py-4 text-center">
-                   <div className="w-8 h-8 rounded-full border-2 border-dashed border-slate-700 animate-spin mx-auto mb-2" />
-                   <p className="text-slate-500 text-[10px] italic">Scouting nearby venues...</p>
+                <div className="py-6 text-center">
+                   <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-800 animate-spin mx-auto mb-3 flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full bg-indigo-500/10" />
+                   </div>
+                   <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Scanning Area...</p>
+                   <p className="text-slate-600 text-[9px] mt-1">Drag near a marker to lock</p>
                 </div>
               )}
             </div>
