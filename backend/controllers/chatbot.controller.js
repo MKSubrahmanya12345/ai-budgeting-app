@@ -80,10 +80,14 @@ export const handleBuddyChat = async (req, res) => {
       .filter((txn) => txn.type === "expense")
       .reduce((sum, txn) => sum + txn.amount, 0);
 
-    const spendingByCategory = history
+    const habitAnalysis = history
       .filter((txn) => txn.type === "expense")
       .reduce((acc, txn) => {
-        acc[txn.category] = (acc[txn.category] || 0) + txn.amount;
+        const cat = txn.category;
+        if (!acc[cat]) acc[cat] = { total: 0, count: 0, avg: 0 };
+        acc[cat].total += txn.amount;
+        acc[cat].count += 1;
+        acc[cat].avg = acc[cat].total / acc[cat].count;
         return acc;
       }, {});
 
@@ -125,20 +129,25 @@ export const handleBuddyChat = async (req, res) => {
 
       ---
       FINANCIAL INSIGHTS & SUMMARY:
-      - User's Monthly Budget Goal: ₹${monthlyBudget.toFixed(2)}
+      - Monthly Budget Goal: ₹${monthlyBudget.toFixed(2)}
       - Real Total Income (Last 100 txns): ₹${totalIncome.toFixed(2)}
       - Real Total Expenses (Last 100 txns): ₹${totalExpenses.toFixed(2)}
       - Net Leftover (Income - Expenses): ₹${discretionaryIncome.toFixed(2)}
-      - Spending by Category: ${JSON.stringify(spendingByCategory)}
       - Active Goals: ${JSON.stringify(goalInsights)}
       ---
-      
+
       ---
-      PREVIOUS CONVERSATION HISTORY (Use for context, do not just repeat):
+      HABIT ANALYSIS (Category metrics from last 100 txns):
+      ${JSON.stringify(habitAnalysis)}
+      ---
+
+      ---
+      PREVIOUS CONVERSATION HISTORY:
       ${previousMessages}
       ---
 
       User's New Message/Question: "${message}"
+      Current Local Time: ${new Date().toLocaleString()}
 
       ---
       **YOUR MISSION-CRITICAL RULES:**
@@ -150,7 +159,14 @@ export const handleBuddyChat = async (req, res) => {
 
       3. **THE "BALANCE KILLER" RULE (IMPORTANT):** If the user asks why their balance is low, what brought it down, or what happened to their money, YOU MUST look at the 'BALANCE KILLERS' list below and name the top 2-3 items specifically. NEVER ask the user to "find expenses that brought it down". You do the work!
 
-      4. **STRICT BREVITY:** No greetings like "Hey there buddy" every time. Answer directly in 2-3 sentences max. End with a 1-sentence "Buddy Challenge". Format: [Answer/Insight]. [Challenge]. Use markdown for numbers.
+      4. **THE "SACRIFICE" PROTOCOL (HOT FEATURE):** 
+         If the user wants to buy something for a price (₹X) in Y months:
+         - Calculate Monthly Target: ₹(X / Y).
+         - Use the HABIT ANALYSIS to find "Leaky Habits" (high frequency categories like Food, Entertainment).
+         - Suggest EXPLICIT cuts. Example: "To get your iPhone (₹70k) in 5 months, we need ₹14k/month. If we cut our ${Object.keys(habitAnalysis)[0] || 'Food'} spend by half (saving ₹${((habitAnalysis[Object.keys(habitAnalysis)[0]]?.total || 0) / 2).toFixed(0)}), we're 40% there!"
+         - Always provide 2-3 specific "Either/Or" sacrifice options.
+
+      5. **STRICT BREVITY:** No greetings like "Hey there buddy" every time. Answer directly in 2-3 sentences max. End with a 1-sentence "Buddy Challenge". Format: [Answer/Insight]. [Challenge]. Use markdown for numbers.
       
       ---
       BALANCE KILLERS (Highest Recent Spending):
