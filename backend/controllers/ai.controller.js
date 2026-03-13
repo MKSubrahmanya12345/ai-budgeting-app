@@ -28,21 +28,66 @@ const fallbackAiData = (type = "expense") => ({
   sdgScore: type === "income" ? 8 : 5,
 });
 
-const buildPrompt = ({ description, amount, transactionDate }) => `You are a personal budgeting assistant.
+const ALLOWED_CATEGORIES = {
+  expense: ["Food", "Transport", "Rent", "Utilities", "Shopping", "Health", "Entertainment", "Education", "Savings", "Other"],
+  income: ["Salary", "Freelance", "Investments", "Refund", "Gift", "Other"]
+};
+
+const normalizeCategory = (cat, type) => {
+  if (!cat || typeof cat !== 'string') return "Other";
+  const normalizedInput = cat.trim().toLowerCase();
+  const options = ALLOWED_CATEGORIES[type] || ALLOWED_CATEGORIES.expense;
+
+  // 1. Exact or case-insensitive match
+  const match = options.find(opt => opt.toLowerCase() === normalizedInput);
+  if (match) return match;
+
+  // 2. Smart Mapping for common student terms
+  const mapping = {
+    "food": ["mess", "lunch", "dinner", "snacks", "cafe", "restaurant", "groceries", "zomato", "swiggy"],
+    "transport": ["uber", "ola", "bus", "train", "fuel", "petrol", "metro", "auto"],
+    "education": ["tuition", "books", "course", "exam", "stationary", "library"],
+    "utilities": ["electricity", "water", "gas", "wifi", "internet", "data", "recharge", "mobile"],
+    "shopping": ["amazon", "flipkart", "clothes", "gadget", "electronics"],
+    "entertainment": ["netflix", "movie", "gaming", "outing", "party"],
+    "health": ["medicine", "doctor", "gym", "pharmacy"],
+    "rent": ["hostel", "pg", "accommodation", "room"],
+    "salary": ["stipend", "paycheck"],
+    "investments": ["stocks", "crypto", "mutual funds", "fd"]
+  };
+
+  for (const [standard, keywords] of Object.entries(mapping)) {
+    if (keywords.some(k => normalizedInput.includes(k))) {
+      // Check if the standard category is valid for this type
+      const standardName = standard.charAt(0).toUpperCase() + standard.slice(1);
+      if (options.includes(standardName)) {
+        return standardName;
+      }
+    }
+  }
+
+  return "Other";
+};
+
+const buildPrompt = ({ description, amount, transactionDate }) => `You are a personal budgeting assistant for a student.
 Classify this transaction and return STRICT JSON only.
 
 Transaction:
 - description: "${description}"
-- amount: ${amount}
+- amount: ₹${amount}
 - transactionDate: "${transactionDate}"
+
+Valid Categories (USE THESE ONLY):
+- Expenses: ${ALLOWED_CATEGORIES.expense.join(", ")}
+- Income: ${ALLOWED_CATEGORIES.income.join(", ")}
 
 Output JSON schema:
 {
   "type": "income" | "expense",
-  "category": "Salary|Freelance|Investments|Refund|Gift|Food|Transport|Rent|Utilities|Shopping|Health|Entertainment|Education|Savings|Tuition|Books|Hostel|Mess|Data/Internet|Other",
+  "category": "String from the valid categories list above",
   "isEssential": boolean,
   "note": "short string",
-  "nudge": "short actionable budgeting advice",
+  "nudge": "short actionable budgeting advice (funny and relatable)",
   "sdgScore": number (1-10)
 }`;
 
@@ -202,12 +247,10 @@ const getAiClassification = async ({ description, amount, transactionDate, defau
 
     if (!parsed) return fallbackAiData(defaultType);
 
+    const type = parsed.type === "income" ? "income" : "expense";
     return {
-      type: parsed.type === "income" ? "income" : "expense",
-      category:
-        typeof parsed.category === "string" && parsed.category.trim()
-          ? parsed.category.trim().slice(0, 40)
-          : "Other",
+      type,
+      category: normalizeCategory(parsed.category, type),
       isEssential: Boolean(parsed.isEssential),
       note: typeof parsed.note === "string" ? parsed.note : "",
       nudge: typeof parsed.nudge === "string" ? parsed.nudge : "",
