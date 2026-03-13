@@ -267,10 +267,12 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
           icon={createPointerIcon()}
           draggable={true}
           eventHandlers={{
+            dragstart: () => {
+              notify('info', 'Radar Scanner Active: Drag over venues for risk analysis');
+            },
             drag: (e) => {
               const pos = e.target.getLatLng();
               
-              // Find nearest place for laser line
               let minDist = Infinity;
               let closest = null;
               
@@ -282,26 +284,27 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
                 }
               });
 
-              if (minDist < 600) { // Scanner range 600m
+              if (minDist < 600) { 
                  setNearestPlace(closest);
               } else {
                  setNearestPlace(null);
               }
 
-              // Check proximity to any place for Warning
               const warningPlace = places.find(p => {
                 const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
-                return dist < 150; // 150 meters
+                return dist < 200; // Increased to 200m for better sensitivity
               });
 
               if (warningPlace) {
                 if (alertedIdRef.current !== warningPlace.id) {
-                  const categoryTxns = transactions.filter(t => t.category.toLowerCase() === (warningPlace.category || "other").toLowerCase());
+                  const categoryName = (warningPlace.category || warningPlace.type || "other").toLowerCase();
+                  const categoryTxns = transactions.filter(t => t.category.toLowerCase() === categoryName);
                   const totalSpent = categoryTxns.reduce((sum, t) => sum + t.amount, 0);
-                  const isRegular = categoryTxns.length >= 3;
+                  const isRegular = categoryTxns.length >= 2; // Trigger on 2 visits instead of 3
 
-                  if (totalSpent > 2000 || isRegular) {
-                    notify('error', `Budget Alert: You spend ₹${totalSpent.toFixed(0)} periodically at ${warningPlace.name}. Thinking twice?`);
+                  // Lowered threshold to ₹500 so user can see it working easily
+                  if (totalSpent > 500 || isRegular || warningPlace.isDemo) {
+                    notify('error', `Budget Alert: High ${categoryName} leak detected at ${warningPlace.name}!`);
                     alertedIdRef.current = warningPlace.id;
                   }
                 }

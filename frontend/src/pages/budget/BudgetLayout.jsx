@@ -74,6 +74,7 @@ const BudgetLayout = () => {
   const [busyAction, setBusyAction] = useState(false);
   const [flash, setFlash] = useState({ type: "", text: "" });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const flashTimeoutRef = useRef(null);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
@@ -375,17 +376,23 @@ const BudgetLayout = () => {
               </div>
             </header>
 
-            {flash.text && (
-              <p
-                className={`rounded-xl border px-3 py-2 text-sm ${
-                  flash.type === "error"
-                    ? "border-red-500/30 bg-red-500/10 text-red-300"
-                    : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                }`}
-              >
-                {flash.text}
-              </p>
-            )}
+            {/* Global Animated Toast Notification */}
+            <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10000] pointer-events-none">
+              {flash.text && (
+                <div
+                  className={`px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-3 ${
+                    flash.type === "error"
+                      ? "border-red-500/30 bg-red-500/90 text-white"
+                      : "border-emerald-500/30 bg-emerald-500/90 text-white"
+                  }`}
+                >
+                  <div className={`p-1.5 rounded-lg ${flash.type === 'error' ? 'bg-white/20' : 'bg-white/20'}`}>
+                    <Sparkles size={16} className="animate-pulse" />
+                  </div>
+                  <p className="text-sm font-black whitespace-nowrap uppercase tracking-tight">{flash.text}</p>
+                </div>
+              )}
+            </div>
 
             {loading ? (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-8 flex items-center justify-center">
