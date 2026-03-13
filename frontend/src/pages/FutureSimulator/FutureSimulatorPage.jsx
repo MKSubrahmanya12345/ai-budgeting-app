@@ -28,9 +28,10 @@ const FutureSimulatorPage = () => {
   const { stats, money } = useBudgetOutlet();
   const [activeTab, setActiveTab] = useState('runway'); // runway, accelerator, legacy
   
-  // States for Runway
+  // States for Runway / Projection
   const [extraMonthlyIncome, setExtraMonthlyIncome] = useState(0);
   const [expenseCutPercent, setExpenseCutPercent] = useState(0);
+  const [wealthGoal, setWealthGoal] = useState(1000000); // 10 Lakhs default
 
   // States for Accelerator
   const [targetPrice, setTargetPrice] = useState(50000);
@@ -51,25 +52,42 @@ const FutureSimulatorPage = () => {
     fetchLeaks();
   }, []);
 
-  // --- RUNWAY LOGIC ---
+  // --- PROJECTOR / RUNWAY LOGIC ---
   const runwayData = useMemo(() => {
     const currentBalance = (stats.userNetBalance || 0) + (stats.userCashBalance || 0) + (stats.userSavingsBalance || 0);
     const monthlyBurn = (stats.totalExpenses || 0) * (1 - expenseCutPercent / 100);
     const monthlyIncome = (stats.totalIncome || 0) + Number(extraMonthlyIncome);
     
-    const netMonthly = monthlyIncome - monthlyBurn;
+    const delta = monthlyIncome - monthlyBurn;
     
-    if (netMonthly >= 0) {
-      return { infinite: true, days: Infinity, months: Infinity };
+    if (delta > 0) {
+      // Accumulating mode
+      const needed = Math.max(0, wealthGoal - currentBalance);
+      const months = needed / delta;
+      const years = months / 12;
+      return { 
+        mode: 'growth', 
+        months: Math.round(months), 
+        years: Math.round(years * 10) / 10,
+        totalMonths: months,
+        delta
+      };
+    } else if (delta < 0) {
+      // Burning mode
+      const months = currentBalance / Math.abs(delta);
+      const years = months / 12;
+      return { 
+        mode: 'burn', 
+        months: Math.round(months % 12), 
+        years: Math.floor(years),
+        totalMonths: months,
+        days: Math.round(months * 30.4),
+        delta
+      };
+    } else {
+      return { mode: 'stagnant', months: Infinity, years: Infinity, delta: 0 };
     }
-    
-    const months = currentBalance / Math.abs(netMonthly);
-    return { 
-      infinite: false, 
-      months: Math.round(months * 10) / 10,
-      days: Math.round(months * 30.4) 
-    };
-  }, [stats, extraMonthlyIncome, expenseCutPercent]);
+  }, [stats, extraMonthlyIncome, expenseCutPercent, wealthGoal]);
 
   // --- ACCELERATOR LOGIC ---
   const acceleratorData = useMemo(() => {
@@ -135,27 +153,74 @@ const FutureSimulatorPage = () => {
                 <div className="relative z-10">
                   <div className="flex items-center gap-3 mb-8">
                     <div className={`p-3 rounded-2xl shadow-lg border border-white/10 ${
-                       runwayData.infinite ? 'bg-emerald-600/20 text-emerald-400' : 'bg-red-600/20 text-red-400'
+                       runwayData.mode === 'growth' ? 'bg-emerald-600/20 text-emerald-400' : 'bg-red-600/20 text-red-400'
                     }`}>
-                      <Clock size={24} />
+                      {runwayData.mode === 'growth' ? <TrendingUp size={24} /> : <Clock size={24} />}
                     </div>
                     <div>
-                      <h2 className="text-2xl font-black text-white uppercase tracking-tight">The Survival Clock</h2>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Time until absolute zero liquidity</p>
+                      <h2 className="text-2xl font-black text-white uppercase tracking-tight">
+                        {runwayData.mode === 'growth' ? 'The Freedom Projection' : 'The Survival Clock'}
+                      </h2>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
+                        {runwayData.mode === 'growth' ? 'Time until your next major milestone' : 'Time until absolute zero liquidity'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="mt-12 text-center">
-                    {runwayData.infinite ? (
-                      <div className="space-y-4">
-                        <div className="text-8xl lg:text-9xl font-black text-emerald-400 tracking-tighter animate-pulse">∞</div>
-                        <p className="text-xl font-bold text-slate-300 uppercase tracking-widest">Permanent Runway</p>
-                        <p className="text-sm text-slate-500 max-w-md mx-auto">Your current income exceeds your burn rate. You are financially stable for the foreseeable future.</p>
-                      </div>
-                    ) : (
+                    {runwayData.mode === 'growth' ? (
                       <div className="space-y-6">
-                        <div className="text-8xl lg:text-9xl font-black text-white tracking-tighter tabular-nums flex items-baseline justify-center gap-4">
-                          {runwayData.days} <span className="text-2xl text-slate-500 tracking-normal uppercase">Days</span>
+                        <div className="text-6xl lg:text-9xl font-black text-emerald-400 tracking-tighter tabular-nums flex items-baseline justify-center gap-4">
+                           {runwayData.years >= 1 ? (
+                             <>
+                               {runwayData.years} <span className="text-2xl text-slate-500 tracking-normal uppercase">Years</span>
+                             </>
+                           ) : (
+                             <>
+                               {runwayData.months} <span className="text-2xl text-slate-500 tracking-normal uppercase">Months</span>
+                             </>
+                           )}
+                        </div>
+                        <p className="text-xl font-bold text-slate-300 uppercase tracking-widest">Target: {formatCurrency(wealthGoal)}</p>
+                        
+                        {/* Growth Visualization */}
+                        <div className="h-32 w-full mt-8 opacity-60">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={Array.from({length: 12}, (_, i) => ({ 
+                                x: i, 
+                                y: (stats.userNetBalance || 0) + (i * runwayData.delta * (runwayData.totalMonths / 12)) 
+                              }))}>
+                                 <Area type="monotone" dataKey="y" stroke="#10b981" strokeWidth={3} fill="url(#growthGradient)" />
+                                 <defs>
+                                    <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
+                                       <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                                       <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                    </linearGradient>
+                                 </defs>
+                              </AreaChart>
+                           </ResponsiveContainer>
+                        </div>
+                        
+                        <p className="text-sm text-slate-500 max-w-md mx-auto">
+                          At your current saving rate of <span className="text-emerald-400 font-bold">{formatCurrency(runwayData.delta)}/mo</span>, you'll hit your goal in {runwayData.years} years.
+                        </p>
+                      </div>
+                    ) : runwayData.mode === 'burn' ? (
+                      <div className="space-y-6">
+                        <div className="text-6xl lg:text-9xl font-black text-white tracking-tighter tabular-nums flex items-baseline justify-center gap-4">
+                           {runwayData.totalMonths >= 24 ? (
+                             <>
+                               {Math.floor(runwayData.totalMonths / 12)} <span className="text-2xl text-slate-500 tracking-normal uppercase">Years</span>
+                             </>
+                           ) : runwayData.totalMonths >= 1 ? (
+                             <>
+                               {Math.round(runwayData.totalMonths)} <span className="text-2xl text-slate-500 tracking-normal uppercase">Months</span>
+                             </>
+                           ) : (
+                              <>
+                                {runwayData.days} <span className="text-2xl text-slate-500 tracking-normal uppercase">Days</span>
+                              </>
+                           )}
                         </div>
                         
                         {/* Runway Decay Visualization */}
@@ -163,7 +228,7 @@ const FutureSimulatorPage = () => {
                            <ResponsiveContainer width="100%" height="100%">
                               <AreaChart data={Array.from({length: 10}, (_, i) => ({ 
                                 x: i, 
-                                y: Math.max(0, 100 - (i * (100 / (runwayData.months || 1)))) 
+                                y: Math.max(0, 100 - (i * (100 / (runwayData.totalMonths || 1)))) 
                               }))}>
                                  <Area type="monotone" dataKey="y" stroke="#ef4444" strokeWidth={2} fill="url(#runwayGradient)" />
                                  <defs>
@@ -177,7 +242,13 @@ const FutureSimulatorPage = () => {
                         </div>
 
                         <p className="text-xl font-bold text-red-400 uppercase tracking-[0.2em]">Depletion Node Alert</p>
-                        <p className="text-sm text-slate-500 max-w-md mx-auto">At your current burn rate of {formatCurrency(stats.totalExpenses)}, you will be broke by month {runwayData.months}.</p>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto">At your current burn rate of {formatCurrency(Math.abs(runwayData.delta))}, you will be broke in {runwayData.totalMonths >= 24 ? `${(runwayData.totalMonths/12).toFixed(1)} years` : `${Math.round(runwayData.totalMonths)} months`}.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="text-8xl lg:text-9xl font-black text-slate-700 tracking-tighter">--</div>
+                        <p className="text-xl font-bold text-slate-500 uppercase tracking-widest">Stagnant Flow</p>
+                        <p className="text-sm text-slate-500">Your income perfectly matches your expenses. No growth, no decay.</p>
                       </div>
                     )}
                   </div>
@@ -206,11 +277,24 @@ const FutureSimulatorPage = () => {
                   <div className="space-y-12 mt-4">
                     <div className="group">
                       <div className="flex justify-between items-end mb-4 px-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Wealth Milestone (Goal)</label>
+                        <span className="text-lg font-black text-emerald-400 tracking-tight">{formatCurrency(wealthGoal)}</span>
+                      </div>
+                      <input 
+                        type="range" min="100000" max="5000000" step="100000" 
+                        value={wealthGoal} 
+                        onChange={e => setWealthGoal(e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-emerald-500 transition-all"
+                      />
+                    </div>
+
+                    <div className="group">
+                      <div className="flex justify-between items-end mb-4 px-1">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Monthly Side Hustle</label>
                         <span className="text-lg font-black text-white tracking-tight">+{formatCurrency(extraMonthlyIncome)}</span>
                       </div>
                       <input 
-                        type="range" min="0" max="50000" step="500" 
+                        type="range" min="0" max="150000" step="1000" 
                         value={extraMonthlyIncome} 
                         onChange={e => setExtraMonthlyIncome(e.target.value)}
                         className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500 transition-all"
