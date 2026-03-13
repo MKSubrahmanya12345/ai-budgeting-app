@@ -1,7 +1,9 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, Rectangle, Circle, Polyline, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { CreditCard, AlertTriangle, Target } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 const { BaseLayer } = LayersControl;
 
@@ -35,10 +37,14 @@ const StoreMap = ({
   heatmapVisible = true,
   searchRadius = 5000,
   onLocationChange = null,
-  accuracy = null
+  accuracy = null,
+  transactions = [],
+  notify = (t, m) => console.log(m)
 }) => {
   const [activeRoute, setActiveRoute] = useState(null);
   const [routingInfo, setRoutingInfo] = useState(null);
+  const [nearbyWarning, setNearbyWarning] = useState(null);
+  const [nearestPlace, setNearestPlace] = useState(null);
 
   // Clear route when center changes significantly
   useEffect(() => {
@@ -80,7 +86,8 @@ const StoreMap = ({
     return null;
   };
 
-  // Function to create custom color markers
+const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
+
   const createIcon = (color, isSpecial = false) => {
     if (isSpecial) {
       return new L.DivIcon({
@@ -97,6 +104,23 @@ const StoreMap = ({
       iconSize: [12, 12],
       iconAnchor: [6, 6],
       popupAnchor: [0, -6]
+    });
+  };
+
+  const createPointerIcon = () => {
+    return new L.DivIcon({
+      html: renderToStaticMarkup(
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-12 h-12 bg-indigo-500/20 rounded-full animate-ping" />
+          <div className="relative p-2 bg-indigo-600 rounded-full border-2 border-white shadow-2xl scale-125">
+            <Target size={16} className="text-white" />
+          </div>
+        </div>
+      ),
+      className: 'pointer-icon',
+      iconSize: [40, 40],
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
     });
   };
 
@@ -224,12 +248,69 @@ const StoreMap = ({
           </Rectangle>
         ))}
         
-        {/* User Location Marker */}
+        {/* Laser/Radar Line to nearest shop */}
+        {nearestPlace && (
+          <Polyline 
+            positions={[center, [nearestPlace.lat, nearestPlace.lng]]}
+            pathOptions={{
+              color: '#818cf8',
+              weight: 1,
+              dashArray: '4, 8',
+              opacity: 0.6
+            }}
+          />
+        )}
+
+        {/* Interactive Pointer (The Smart Search Center) */}
         <Marker 
           position={center} 
-          icon={createIcon('#6366f1')}
+          icon={createPointerIcon()}
           draggable={true}
           eventHandlers={{
+            drag: (e) => {
+              const pos = e.target.getLatLng();
+              
+              // Find nearest place for laser line
+              let minDist = Infinity;
+              let closest = null;
+              
+              places.forEach(p => {
+                const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
+                if (dist < minDist) {
+                  minDist = dist;
+                  closest = p;
+                }
+              });
+
+              if (minDist < 600) { // Scanner range 600m
+                 setNearestPlace(closest);
+              } else {
+                 setNearestPlace(null);
+              }
+
+              // Check proximity to any place for Warning
+              const warningPlace = places.find(p => {
+                const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
+                return dist < 150; // 150 meters
+              });
+
+              if (warningPlace) {
+                const categoryTxns = transactions.filter(t => t.category.toLowerCase() === (warningPlace.category || "other").toLowerCase());
+                const totalSpent = categoryTxns.reduce((sum, t) => sum + t.amount, 0);
+                const isRegular = categoryTxns.length >= 3;
+
+                if (totalSpent > 2000 || isRegular) {
+                  setNearbyWarning({
+                    name: warningPlace.name,
+                    spent: totalSpent,
+                    regular: isRegular,
+                    id: warningPlace.id
+                  });
+                }
+              } else {
+                setNearbyWarning(null);
+              }
+            },
             dragend: (e) => {
               const marker = e.target;
               const position = marker.getLatLng();
@@ -240,15 +321,42 @@ const StoreMap = ({
           }}
         >
           <Popup>
-            <div className="text-xs">
-              <strong className="text-indigo-400">Search Center</strong><br />
-              <div className="text-[10px] text-slate-500 font-mono mt-1">
-                {center[0].toFixed(4)}, {center[1].toFixed(4)}
-              </div>
-              <p className="text-slate-300 mt-1">Deals are being searched around this point.</p>
+            <div className="text-xs p-1 min-w-[150px]">
+              <strong className="text-indigo-400 uppercase tracking-tighter">Budget Scanner</strong>
+              
+              {nearestPlace && L.latLng(center).distanceTo(L.latLng(placeToPos(nearestPlace))) < 300 ? (
+                <div className="mt-2 space-y-2 animate-in fade-in duration-300">
+                   <p className="text-[10px] text-slate-400">Locked on: <span className="text-white font-bold">{nearestPlace.name}</span></p>
+                   <button 
+                      onClick={() => notify('success', `Payment tracked for ${nearestPlace.name}`)}
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                   >
+                     <CreditCard size={12} /> Pay Now
+                   </button>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-[10px] mt-2 italic">Drag near a shop to enable Fast Pay.</p>
+              )}
             </div>
           </Popup>
         </Marker>
+
+        {/* Proximity Warning Overlay */}
+        {nearbyWarning && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] animate-bounce">
+             <div className="bg-red-950/90 border border-red-500/50 p-4 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[300px] backdrop-blur-md">
+                <div className="p-2 bg-red-500/20 text-red-500 rounded-xl">
+                   <AlertTriangle size={20} />
+                </div>
+                <div>
+                   <p className="text-white text-xs font-black uppercase tracking-tight">Financial Alert: {nearbyWarning.name}</p>
+                   <p className="text-[10px] text-red-300">
+                     You spend around <span className="font-bold">₹{nearbyWarning.spent.toFixed(0)}</span> {nearbyWarning.regular ? 'regularly' : 'in total'} in this category. Are you sure?
+                   </p>
+                </div>
+             </div>
+          </div>
+        )}
 
         {/* Business/Deal Markers */}
         {places.map((place) => {
@@ -296,20 +404,32 @@ const StoreMap = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between mt-2 pt-1">
-                      <div className="flex flex-col">
-                          <span className="text-[8px] text-indigo-400 uppercase font-bold">Total Cost</span>
-                          <span className={`text-sm font-black ${place.total_cost <= budget ? 'text-emerald-400' : place.total_cost <= budget * 1.2 ? 'text-amber-400' : 'text-red-400'}`}>
-                              ₹{place.total_cost}
-                          </span>
-                      </div>
-                      <div className="text-right">
-                          <div className="flex items-center justify-end gap-1 text-[10px] text-slate-400">
-                             <span className="text-amber-400">★</span> {place.rating.toFixed(1)}
+                   <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-slate-800">
+                      <button 
+                        onClick={() => {
+                          notify('success', `Simulating payment to ${place.name}...`);
+                          // Logic for habit tracking can be added here
+                        }}
+                        className="w-full flex items-center justify-center gap-2 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+                      >
+                         <CreditCard size={14} /> Pay & Track
+                      </button>
+                      
+                      <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                              <span className="text-[8px] text-indigo-400 uppercase font-bold">Total Cost</span>
+                              <span className={`text-sm font-black ${place.total_cost <= budget ? 'text-emerald-400' : place.total_cost <= budget * 1.2 ? 'text-amber-400' : 'text-red-400'}`}>
+                                  ₹{place.total_cost}
+                              </span>
                           </div>
-                          <div className="text-[9px] text-slate-500">{place.distance_km} km away</div>
+                          <div className="text-right">
+                              <div className="flex items-center justify-end gap-1 text-[10px] text-slate-400">
+                                 <span className="text-amber-400">★</span> {place.rating.toFixed(1)}
+                              </div>
+                              <div className="text-[9px] text-slate-500">{place.distance_km} km away</div>
+                          </div>
                       </div>
-                  </div>
+                   </div>
                 </div>
               </Popup>
             </Marker>

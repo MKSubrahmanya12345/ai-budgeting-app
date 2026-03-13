@@ -398,8 +398,8 @@ const BudgetLayout = () => {
         </div>
       </div>
       
-      {/* Global AI Floating Chatbot - Hidden on mobile if redundant with BottomNav */}
-      <div className="hidden lg:block">
+      {/* Global AI Floating Chatbot - Forced to front with relative portal-like z-index */}
+      <div className="hidden lg:block relative z-[99999]">
         <FloatingChatbot mode={entryMode} />
       </div>
 

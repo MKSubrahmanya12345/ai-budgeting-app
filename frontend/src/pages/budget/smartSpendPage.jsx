@@ -380,6 +380,8 @@ const SmartSpendPage = () => {
             searchRadius={radius}
             onLocationChange={handleManualLocationChange}
             accuracy={locationAccuracy}
+            transactions={context?.transactions || []}
+            notify={notify}
            />
         </div>
       </section>
