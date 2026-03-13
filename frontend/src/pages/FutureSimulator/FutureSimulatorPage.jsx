@@ -1,37 +1,42 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Sparkles, TrendingUp, AlertTriangle, ArrowRight, Bot, Calculator } from 'lucide-react';
+import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { 
+  Sparkles, 
+  Clock, 
+  Zap, 
+  Target, 
+  TrendingUp, 
+  AlertTriangle, 
+  Rocket,
+  ShieldCheck,
+  Flame,
+  Coffee,
+  ShoppingBag,
+  Gamepad
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/api';
+import { useBudgetOutlet } from '../budget/useBudgetOutlet';
 
-const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
-
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl">
-        <p className="text-slate-400 mb-2 font-medium">Year {label}</p>
-        <div className="space-y-1 text-sm">
-          <p className="text-cyan-400 font-bold flex justify-between gap-4">
-            <span>Optimized:</span> 
-            <span>{formatCurrency(payload[1].value)}</span>
-          </p>
-          <p className="text-slate-300 flex justify-between gap-4">
-            <span>Current Path:</span> 
-            <span>{formatCurrency(payload[0].value)}</span>
-          </p>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+const formatCurrency = (val) => new Intl.NumberFormat('en-IN', { 
+  style: 'currency', 
+  currency: 'INR', 
+  maximumFractionDigits: 0 
+}).format(val);
 
 const FutureSimulatorPage = () => {
-  const [startingCapital, setStartingCapital] = useState(1000);
-  const [monthlyContribution, setMonthlyContribution] = useState(200);
-  const [expectedReturn, setExpectedReturn] = useState(8);
-  const [years, setYears] = useState(10);
+  const { stats, money } = useBudgetOutlet();
+  const [activeTab, setActiveTab] = useState('runway'); // runway, accelerator, legacy
   
+  // States for Runway
+  const [extraMonthlyIncome, setExtraMonthlyIncome] = useState(0);
+  const [expenseCutPercent, setExpenseCutPercent] = useState(0);
+
+  // States for Accelerator
+  const [targetPrice, setTargetPrice] = useState(50000);
+  const [habitPrice, setHabitPrice] = useState(250);
+  const [habitFrequency, setHabitFrequency] = useState(20); // per month
+
   const [leaks, setLeaks] = useState([]);
 
   useEffect(() => {
@@ -46,213 +51,373 @@ const FutureSimulatorPage = () => {
     fetchLeaks();
   }, []);
 
-  const leaksAmount = useMemo(() => {
-    return Math.round(leaks.reduce((sum, leak) => sum + leak.totalSpent, 0));
-  }, [leaks]);
-
-  const chartData = useMemo(() => {
-    let data = [];
-    const r = expectedReturn / 100 / 12; // monthly rate
+  // --- RUNWAY LOGIC ---
+  const runwayData = useMemo(() => {
+    const currentBalance = (stats.userNetBalance || 0) + (stats.userCashBalance || 0) + (stats.userSavingsBalance || 0);
+    const monthlyBurn = (stats.totalExpenses || 0) * (1 - expenseCutPercent / 100);
+    const monthlyIncome = (stats.totalIncome || 0) + Number(extraMonthlyIncome);
     
-    let normalWorth = Number(startingCapital);
-    let optimizedWorth = Number(startingCapital);
+    const netMonthly = monthlyIncome - monthlyBurn;
     
-    // Fallback normal math to strict interest if rate is 0
-    for (let yr = 0; yr <= years; yr++) {
-      if (yr === 0) {
-        data.push({
-          year: 'Year 0',
-          normal: Math.round(normalWorth),
-          optimized: Math.round(optimizedWorth),
-        });
-        continue;
-      }
-
-      for (let m = 0; m < 12; m++) {
-        if (r === 0) {
-          normalWorth += Number(monthlyContribution);
-          optimizedWorth += Number(monthlyContribution) + Number(leaksAmount);
-        } else {
-          normalWorth = normalWorth * (1 + r) + Number(monthlyContribution);
-          optimizedWorth = optimizedWorth * (1 + r) + (Number(monthlyContribution) + Number(leaksAmount));
-        }
-      }
-
-      data.push({
-        year: `Year ${yr}`,
-        normal: Math.round(normalWorth),
-        optimized: Math.round(optimizedWorth),
-      });
+    if (netMonthly >= 0) {
+      return { infinite: true, days: Infinity, months: Infinity };
     }
-    return data;
-  }, [startingCapital, monthlyContribution, expectedReturn, years, leaksAmount]);
+    
+    const months = currentBalance / Math.abs(netMonthly);
+    return { 
+      infinite: false, 
+      months: Math.round(months * 10) / 10,
+      days: Math.round(months * 30.4) 
+    };
+  }, [stats, extraMonthlyIncome, expenseCutPercent]);
 
-  const rawFinalNormal = chartData[chartData.length - 1]?.normal || 0;
-  const rawFinalOptimized = chartData[chartData.length - 1]?.optimized || 0;
-  const rawDifference = rawFinalOptimized - rawFinalNormal;
+  // --- ACCELERATOR LOGIC ---
+  const acceleratorData = useMemo(() => {
+    const monthlySavingsBase = (stats.totalIncome || 0) - (stats.totalExpenses || 0);
+    const actualMonthlySavings = Math.max(0, monthlySavingsBase);
+    
+    const habitTotalMonthly = habitPrice * habitFrequency;
+    const monthsWithoutCut = actualMonthlySavings > 0 ? targetPrice / actualMonthlySavings : Infinity;
+    const monthsWithCut = (actualMonthlySavings + habitTotalMonthly) > 0 
+      ? targetPrice / (actualMonthlySavings + habitTotalMonthly) 
+      : Infinity;
+    
+    const daysSaved = (monthsWithoutCut - monthsWithCut) * 30.4;
+    
+    return {
+      monthsWithoutCut: Math.round(monthsWithoutCut * 10) / 10,
+      monthsWithCut: Math.round(monthsWithCut * 10) / 10,
+      daysSaved: monthsWithoutCut === Infinity ? 0 : Math.round(daysSaved),
+      monthlyHabitCost: habitTotalMonthly
+    };
+  }, [stats, targetPrice, habitPrice, habitFrequency]);
 
   return (
-    <div className="space-y-8 pb-24 animate-neo-slide">
-      {/* Premium Intelligence Header */}
-      <section className="rounded-[3rem] neo-glass neo-shadow p-10 border-none relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-fuchsia-600/5 blur-[120px] -mr-64 -mt-64" />
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 rounded-2xl bg-fuchsia-600 shadow-lg shadow-fuchsia-600/30">
-                <Sparkles size={24} className="text-white fill-current" />
-              </div>
-              <h2 className="text-3xl font-black text-white tracking-tight uppercase">Wealth Trajectory Simulator</h2>
-            </div>
-            <p className="text-slate-400 text-lg font-medium leading-relaxed italic">
-              &quot;Precision modeling for your financial destiny. We&apos;ve pinpointed <span className="text-fuchsia-400 font-black">{formatCurrency(leaksAmount)}/mo</span> in structural leaks. Visualize the power of reallocation.&quot;
-            </p>
-          </div>
-          
-          <div className="p-8 rounded-[2.5rem] bg-fuchsia-500/10 border border-fuchsia-500/20 text-center min-w-[280px] group hover:bg-fuchsia-500/20 transition-all">
-            <p className="text-[10px] text-fuchsia-400 font-black uppercase tracking-[0.3em] mb-3">Opportunity Cost</p>
-            <p className="text-5xl font-black text-white tracking-tighter mb-2">+{formatCurrency(rawDifference)}</p>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-none">Net Gain in {years} Years</p>
-          </div>
-        </div>
-      </section>
+    <div className="space-y-8 pb-32 animate-neo-slide">
+      {/* Simulation Engine Selector */}
+      <nav className="flex flex-wrap gap-4 p-2 bg-slate-900/50 backdrop-blur-xl rounded-[2rem] border border-white/5 w-fit mx-auto lg:mx-0">
+        {[
+          { id: 'runway', label: 'Survival Runway', icon: Flame },
+          { id: 'accelerator', label: 'Dream Accelerator', icon: Rocket },
+          { id: 'habit', label: 'Habit Compounder', icon: Zap },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${
+              activeTab === tab.id 
+                ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30 active:scale-95' 
+                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.label}
+          </button>
+        ))}
+      </nav>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        {/* Scenario Controls */}
-        <aside className="lg:col-span-4 space-y-6">
-          <div className="neo-glass neo-shadow rounded-[2.5rem] p-8 h-full border-none">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400">
-                <Calculator size={20} />
-              </div>
-              <h3 className="text-lg font-black text-white uppercase tracking-tight">Scenario Matrix</h3>
-            </div>
-            
-            <div className="space-y-10">
-              {[
-                { label: "Starting Capital", val: startingCapital, set: setStartingCapital, min: 0, max: 100000, step: 1000, format: formatCurrency },
-                { label: "Monthly Contribution", val: monthlyContribution, set: setMonthlyContribution, min: 0, max: 20000, step: 100, format: formatCurrency },
-                { label: "Expected Return (%)", val: expectedReturn, set: setExpectedReturn, min: 1, max: 15, step: 0.5, format: (v) => `${v}%` },
-                { label: "Execution Horizon", val: years, set: setYears, min: 1, max: 50, step: 1, format: (v) => `${v} Years` }
-              ].map((input) => (
-                <div key={input.label} className="group">
-                  <div className="flex justify-between items-end mb-4 px-1">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{input.label}</label>
-                    <span className="text-lg font-black text-white tracking-tight">{input.format(input.val)}</span>
+      <AnimatePresence mode="wait">
+        {activeTab === 'runway' && (
+          <motion.div 
+            key="runway"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          >
+            {/* Runway Main Display */}
+            <div className="lg:col-span-8">
+              <div className="h-full rounded-[3rem] neo-glass neo-shadow p-8 lg:p-12 border-none relative overflow-hidden flex flex-col justify-between">
+                <div className={`absolute top-0 right-0 w-96 h-96 blur-[100px] -mr-48 -mt-48 transition-colors duration-1000 ${
+                  runwayData.infinite ? 'bg-emerald-600/10' : runwayData.months < 3 ? 'bg-red-600/20' : 'bg-amber-600/10'
+                }`} />
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-8">
+                    <div className={`p-3 rounded-2xl shadow-lg border border-white/10 ${
+                       runwayData.infinite ? 'bg-emerald-600/20 text-emerald-400' : 'bg-red-600/20 text-red-400'
+                    }`}>
+                      <Clock size={24} />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black text-white uppercase tracking-tight">The Survival Clock</h2>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Time until absolute zero liquidity</p>
+                    </div>
                   </div>
-                  <input 
-                    type="range" 
-                    min={input.min} max={input.max} step={input.step} 
-                    value={input.val} 
-                    onChange={e => input.set(Number(e.target.value))}
-                    className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500 hover:accent-fuchsia-500 transition-all"
-                  />
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-12 p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
-              <div className="flex gap-4">
-                 <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
-                    <Bot size={20} />
-                 </div>
-                 <div>
-                    <p className="text-xs font-black text-indigo-300 uppercase tracking-widest mb-2">Genie Intelligence</p>
-                    <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
-                      &quot;The <strong>Optimized path</strong> factors in your 7-day action protocol, assuming all detected leaks are reinvested.&quot;
-                    </p>
-                 </div>
-              </div>
-            </div>
-          </div>
-        </aside>
 
-        {/* Projection Visualization */}
-        <section className="lg:col-span-8">
-           <div className="neo-glass neo-shadow rounded-[2.5rem] p-8 h-full border-none flex flex-col">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-10">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400">
-                    <TrendingUp size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-black text-white uppercase tracking-tight">Projected Trajectory</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Growth Differential Modeling</p>
+                  <div className="mt-12 text-center">
+                    {runwayData.infinite ? (
+                      <div className="space-y-4">
+                        <div className="text-8xl lg:text-9xl font-black text-emerald-400 tracking-tighter animate-pulse">∞</div>
+                        <p className="text-xl font-bold text-slate-300 uppercase tracking-widest">Permanent Runway</p>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto">Your current income exceeds your burn rate. You are financially stable for the foreseeable future.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="text-8xl lg:text-9xl font-black text-white tracking-tighter tabular-nums flex items-baseline justify-center gap-4">
+                          {runwayData.days} <span className="text-2xl text-slate-500 tracking-normal uppercase">Days</span>
+                        </div>
+                        
+                        {/* Runway Decay Visualization */}
+                        <div className="h-32 w-full mt-8 opacity-50">
+                           <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={Array.from({length: 10}, (_, i) => ({ 
+                                x: i, 
+                                y: Math.max(0, 100 - (i * (100 / (runwayData.months || 1)))) 
+                              }))}>
+                                 <Area type="monotone" dataKey="y" stroke="#ef4444" strokeWidth={2} fill="url(#runwayGradient)" />
+                                 <defs>
+                                    <linearGradient id="runwayGradient" x1="0" y1="0" x2="0" y2="1">
+                                       <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                    </linearGradient>
+                                 </defs>
+                              </AreaChart>
+                           </ResponsiveContainer>
+                        </div>
+
+                        <p className="text-xl font-bold text-red-400 uppercase tracking-[0.2em]">Depletion Node Alert</p>
+                        <p className="text-sm text-slate-500 max-w-md mx-auto">At your current burn rate of {formatCurrency(stats.totalExpenses)}, you will be broke by month {runwayData.months}.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-left sm:text-right px-6 py-3 rounded-2xl bg-white/5 border border-white/5">
-                   <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mb-1">Final Portfolio</p>
-                   <p className="text-3xl font-black text-cyan-400 tracking-tighter">{formatCurrency(rawFinalOptimized)}</p>
+
+                <div className="relative z-10 mt-16 grid grid-cols-2 sm:grid-cols-4 gap-6 p-6 rounded-[2.5rem] bg-white/5 border border-white/5 backdrop-blur-md">
+                   {[
+                     { label: 'Combined Balance', val: formatCurrency((stats.userNetBalance || 0) + (stats.userCashBalance || 0) + (stats.userSavingsBalance || 0)), icon: ShieldCheck, color: 'text-cyan-400' },
+                     { label: 'Monthly Outflow', val: formatCurrency(stats.totalExpenses), icon: Flame, color: 'text-red-400' },
+                     { label: 'Monthly Inflow', val: formatCurrency(stats.totalIncome), icon: TrendingUp, color: 'text-emerald-400' },
+                     { label: 'Monthly Delta', val: formatCurrency(stats.totalIncome - stats.totalExpenses), icon: Zap, color: 'text-indigo-400' },
+                   ].map((m) => (
+                     <div key={m.label}>
+                       <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-1.5"><m.icon size={10} className={m.color} /> {m.label}</p>
+                       <p className="text-sm font-black text-white">{m.val}</p>
+                     </div>
+                   ))}
                 </div>
               </div>
+            </div>
 
-              <div className="flex-grow min-h-[450px] relative">
-                <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                  <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorNormalSim" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#475569" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#475569" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorOptimizedSim" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
-                    <XAxis 
-                      dataKey="year" 
-                      stroke="#475569" 
-                      tick={{ fill: '#475569', fontSize: 10, fontWeight: 800 }} 
-                      tickLine={false}
-                      axisLine={false}
-                      dy={10}
-                    />
-                    <YAxis 
-                      stroke="#475569" 
-                      tick={{ fill: '#475569', fontSize: 10, fontWeight: 800 }}
-                      tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Area 
-                      type="monotone" 
-                      dataKey="normal" 
-                      stroke="#475569" 
-                      strokeWidth={3} 
-                      fillOpacity={1} 
-                      fill="url(#colorNormalSim)" 
-                      dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="optimized" 
-                      stroke="#22d3ee" 
-                      strokeWidth={5} 
-                      fillOpacity={1} 
-                      fill="url(#colorOptimizedSim)" 
-                      dot={false}
-                      activeDot={{ r: 6, strokeWidth: 4, stroke: '#22d3ee' }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+            {/* Controls for Survival */}
+            <aside className="lg:col-span-4 space-y-6">
+               <div className="rounded-[2.5rem] neo-glass neo-shadow p-8 border-none h-full">
+                  <h3 className="text-lg font-black text-white uppercase tracking-tight mb-8">Alter Reality</h3>
+                  <div className="space-y-12 mt-4">
+                    <div className="group">
+                      <div className="flex justify-between items-end mb-4 px-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Monthly Side Hustle</label>
+                        <span className="text-lg font-black text-white tracking-tight">+{formatCurrency(extraMonthlyIncome)}</span>
+                      </div>
+                      <input 
+                        type="range" min="0" max="50000" step="500" 
+                        value={extraMonthlyIncome} 
+                        onChange={e => setExtraMonthlyIncome(e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500 transition-all"
+                      />
+                    </div>
 
-              <div className="mt-8 flex items-center justify-center gap-10">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-1 bg-slate-600 rounded-full" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Base Trajectory</span>
-                 </div>
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" />
-                    <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest">Genically Optimized</span>
+                    <div className="group">
+                      <div className="flex justify-between items-end mb-4 px-1">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Burn Reduction (%)</label>
+                        <span className="text-lg font-black text-white tracking-tight">{expenseCutPercent}%</span>
+                      </div>
+                      <input 
+                        type="range" min="0" max="80" step="1" 
+                        value={expenseCutPercent} 
+                        onChange={e => setExpenseCutPercent(e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-red-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-12 p-6 rounded-3xl bg-indigo-500/5 border border-indigo-500/10">
+                     <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-3">Coach Protocol</p>
+                     <p className="text-xs text-slate-400 leading-relaxed italic">
+                        &quot;Increasing your side hustle by even 5k can instantly flip a negative runway into an infinite growth loop.&quot;
+                     </p>
+                  </div>
+               </div>
+            </aside>
+          </motion.div>
+        )}
+
+        {activeTab === 'accelerator' && (
+          <motion.div 
+            key="accelerator"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          >
+            <div className="lg:col-span-8">
+              <div className="h-full rounded-[3rem] neo-glass neo-shadow p-10 border-none relative overflow-hidden flex flex-col justify-center text-center">
+                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 to-purple-600/5" />
+                 
+                 <div className="relative z-10 space-y-12">
+                    <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-indigo-600/30">
+                       <Rocket size={14} /> Accelerator Engaged
+                    </div>
+                    
+                    <div className="space-y-6 relative z-10">
+                      <h2 className="text-5xl lg:text-7xl font-black text-white tracking-tighter leading-none">
+                        Save <span className="text-cyan-400">{acceleratorData.daysSaved} Days</span>
+                      </h2>
+                      <p className="text-xl font-medium text-slate-400">By sacrificing one specific habit, you get your item {Math.round(acceleratorData.daysSaved / 30.4)} months sooner.</p>
+                      
+                      {/* Acceleration Comparison View */}
+                      <div className="h-40 w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={Array.from({length: 12}, (_, i) => ({
+                            m: i,
+                            base: i * 2,
+                            accel: i * 3.5
+                          }))}>
+                            <Area type="monotone" dataKey="accel" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.1} strokeWidth={3} />
+                            <Area type="monotone" dataKey="base" stroke="#475569" fill="#475569" fillOpacity={0.1} strokeWidth={2} />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-10 rounded-[3rem] bg-slate-900 shadow-2xl border border-white/5">
+                        <div className="space-y-2">
+                           <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest">Base Date</p>
+                           <p className="text-3xl font-black text-white">{acceleratorData.monthsWithoutCut === Infinity ? 'Never' : `${acceleratorData.monthsWithoutCut} Mo`}</p>
+                           <p className="text-[10px] text-slate-600 font-bold uppercase">Standard Savings Path</p>
+                        </div>
+                        <div className="space-y-2 border-l border-white/5">
+                           <p className="text-[10px] uppercase font-black text-cyan-500 tracking-widest">New Date</p>
+                           <p className="text-3xl font-black text-cyan-400">{acceleratorData.monthsWithCut === Infinity ? 'Never' : `${acceleratorData.monthsWithCut} Mo`}</p>
+                           <p className="text-[10px] text-cyan-900 font-bold uppercase">After Sacrifice Engine</p>
+                        </div>
+                    </div>
                  </div>
               </div>
-           </div>
-        </section>
-      </div>
+            </div>
+
+            <aside className="lg:col-span-4 space-y-6">
+               <div className="rounded-[2.5rem] neo-glass neo-shadow p-8 border-none h-full">
+                  <h3 className="text-lg font-black text-white uppercase tracking-tight mb-8">Dream Paramaters</h3>
+                  <div className="space-y-10">
+                    <div className="group">
+                      <div className="flex justify-between items-end mb-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">Item Price</label>
+                        <span className="text-lg font-black text-white">{formatCurrency(targetPrice)}</span>
+                      </div>
+                      <input 
+                        type="range" min="1000" max="200000" step="1000" 
+                        value={targetPrice} 
+                        onChange={e => setTargetPrice(e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-indigo-500 transition-all"
+                      />
+                    </div>
+
+                    <div className="group">
+                      <div className="flex justify-between items-end mb-4">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">Habit (Price/ea)</label>
+                        <span className="text-lg font-black text-white">{formatCurrency(habitPrice)}</span>
+                      </div>
+                      <input 
+                        type="range" min="50" max="5000" step="50" 
+                        value={habitPrice} 
+                        onChange={e => setHabitPrice(e.target.value)}
+                        className="w-full h-1.5 bg-slate-800 rounded-full appearance-none cursor-pointer accent-cyan-500 transition-all"
+                      />
+                    </div>
+
+                    <div className="group">
+                        <div className="flex justify-between items-end mb-4">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-left">Frequency (x/mo)</label>
+                          <span className="text-lg font-black text-white">{habitFrequency}x</span>
+                        </div>
+                        <div className="flex gap-2">
+                           {[5, 10, 20, 30].map(val => (
+                             <button
+                                key={val}
+                                onClick={() => setHabitFrequency(val)}
+                                className={`flex-1 py-3 rounded-2xl text-[10px] font-black transition-all ${
+                                   habitFrequency === val ? 'bg-cyan-600 text-white' : 'bg-white/5 text-slate-500 hover:text-slate-300'
+                                }`}
+                             >
+                               {val}x
+                             </button>
+                           ))}
+                        </div>
+                    </div>
+                  </div>
+               </div>
+            </aside>
+          </motion.div>
+        )}
+
+        {activeTab === 'habit' && (
+          <motion.div 
+            key="habit"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+          >
+             <div className="lg:col-span-8">
+               <div className="rounded-[3rem] neo-glass neo-shadow p-12 border-none">
+                  <div className="flex items-center gap-4 mb-12">
+                     <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-500">
+                        <Zap size={24} />
+                     </div>
+                     <h2 className="text-2xl font-black text-white uppercase tracking-tight">The 5-Year Mirror</h2>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                     {[
+                       { cat: 'Dining Out', price: 600, freq: 8, icon: Coffee, color: 'text-orange-400' },
+                       { cat: 'Subscriptions', price: 999, freq: 4, icon: Zap, color: 'text-indigo-400' },
+                       { cat: 'Impulse Buys', price: 2500, freq: 2, icon: ShoppingBag, color: 'text-fuchsia-400' },
+                       { cat: 'Gaming Skins', price: 400, freq: 5, icon: Gamepad, color: 'text-cyan-400' },
+                     ].map((h) => {
+                       const yrCost = h.price * h.freq * 12;
+                       const fiveYrCost = yrCost * 5;
+                       return (
+                         <div key={h.cat} className="p-8 rounded-[2.5rem] bg-white/5 border border-white/5 group hover:bg-white/10 transition-all relative overflow-hidden">
+                            <h.icon className={`absolute -right-4 -bottom-4 w-32 h-32 opacity-5 scale-150 rotate-12 group-hover:rotate-0 transition-transform ${h.color}`} />
+                            <div className="relative z-10 flex items-center justify-between mb-8">
+                               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{h.cat}</p>
+                               <p className="text-lg font-black text-white">{formatCurrency(h.price)}/ea</p>
+                            </div>
+                            <div className="relative z-10 space-y-1">
+                               <p className="text-3xl font-black text-white tabular-nums">{formatCurrency(fiveYrCost)}</p>
+                               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Waste potential in 5 years</p>
+                            </div>
+                         </div>
+                       );
+                     })}
+                  </div>
+               </div>
+             </div>
+
+             <aside className="lg:col-span-4">
+                <div className="rounded-[3rem] neo-glass neo-shadow p-10 h-full border-none bg-indigo-600 shadow-indigo-600/30">
+                   <div className="flex flex-col h-full justify-between text-white">
+                      <div>
+                        <Target size={40} className="mb-8" />
+                        <h3 className="text-3xl font-black leading-tight mb-4 uppercase tracking-tighter italic">The 1% Rule</h3>
+                        <p className="text-indigo-100 font-medium leading-relaxed">
+                          Investing just ₹1,000 extra starting today would compound to <span className="text-indigo-900 bg-white px-2 py-0.5 rounded font-black">₹4.2 Lakhs</span> by the time you graduate with a masters degree.
+                        </p>
+                      </div>
+                      
+                      <div className="mt-auto pt-10">
+                         <div className="p-5 rounded-2xl bg-white/10 border border-white/10 flex items-center gap-4">
+                            <Sparkles size={20} className="text-amber-300" />
+                            <p className="text-xs font-bold italic">Genie suggests: Cut your Dining Out by 15% to hit your &apos;MacBook&apos; goal by July.</p>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+             </aside>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

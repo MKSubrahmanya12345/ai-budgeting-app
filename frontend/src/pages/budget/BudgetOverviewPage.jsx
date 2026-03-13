@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BadgeCheck, PiggyBank, Sparkles, TrendingDown, TrendingUp, Wallet, HandCoins, Building2, Landmark } from "lucide-react";
+import { BadgeCheck, PiggyBank, Sparkles, TrendingDown, TrendingUp, Wallet, HandCoins, Building2, Landmark, Zap, Rocket, Trash2, Calculator } from "lucide-react";
 import { monthTitle } from "../../lib/budget";
 import { useBudgetOutlet } from "./useBudgetOutlet";
 import { useAuth } from "../../context/useAuth";
@@ -125,12 +125,13 @@ const BudgetOverviewPage = () => {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         {[
-          { label: "Revenue", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
-          { label: "Outflow", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-400", bg: "bg-red-500/10" },
-          { label: "Assets", value: money(stats.netBalance), icon: Wallet, color: "text-cyan-400", bg: "bg-cyan-500/10" },
-          { label: "Reserve", value: money(budgetLeft), icon: PiggyBank, color: "text-indigo-400", bg: "bg-indigo-500/10" },
+          { label: "Monthly Inflow", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { label: "Monthly Outflow", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-400", bg: "bg-red-500/10" },
+          { label: "Digital Wallet", value: money(stats.userNetBalance), icon: Building2, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+          { label: "Hard Cash", value: money(stats.userCashBalance), icon: HandCoins, color: "text-amber-400", bg: "bg-amber-500/10" },
+          { label: "Monthly Budget", value: money(stats.monthlyBudget), icon: Calculator, color: "text-indigo-400", bg: "bg-indigo-500/10" },
         ].map((card) => (
           <article 
             key={card.label} 
@@ -145,12 +146,11 @@ const BudgetOverviewPage = () => {
         ))}
       </section>
 
-      {/* Account System Breakdown - Neo Style */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Additional Nodes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {[
-          { label: "Digital Wallets", value: stats.userNetBalance, icon: Building2, color: "cyan" },
-          { label: "Cold Cash", value: stats.userCashBalance, icon: HandCoins, color: "amber" },
-          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, color: "indigo" },
+          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, color: "indigo", bg: "bg-indigo-500/10" },
+          { label: "Daily Safe Spend", value: dailySafeSpend, icon: Sparkles, color: "emerald", bg: "bg-emerald-500/10" },
         ].map((item) => (
           <div key={item.label} className="relative group overflow-hidden rounded-[2.5rem] neo-glass neo-shadow p-6 border-none">
             <div className={`absolute top-0 right-0 w-32 h-32 bg-${item.color}-500/10 blur-[80px] -mr-16 -mt-16`} />
