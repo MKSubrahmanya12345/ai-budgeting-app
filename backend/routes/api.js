@@ -1,5 +1,8 @@
 import express from "express";
+import multer from "multer";
 const router = express.Router();
+
+const upload = multer({ dest: "uploads/" });
 
 // Import Controllers
 import { updateBudget } from "../controllers/auth.controller.js";
@@ -25,6 +28,7 @@ import {
 import { getDashboardStats, getAnalysisSummary } from "../controllers/budget.controller.js";
 import { getAiBudgetBrief } from "../controllers/aiInsights.controller.js";
 import { handleBuddyChat, getChatHistory, getChats, deleteChat } from "../controllers/chatbot.controller.js";
+import { scanReceipt } from "../controllers/ocr.controller.js";
 import {
   contributeToGoal,
   createGoal,
@@ -76,6 +80,7 @@ router.put("/transactions/:transactionId", authMiddleware, updateTransaction);
 router.delete("/transactions/:transactionId", authMiddleware, deleteTransaction);
 router.delete("/transactions", authMiddleware, clearTransactions);
 router.post("/transactions/import/pdf", authMiddleware, importTransactionsFromPDF);
+router.post("/transactions/scan-receipt", authMiddleware, upload.single("image"), scanReceipt);
 
 //$$$$$$
 // Analysis Routes

@@ -1,104 +1,111 @@
+import { useMemo } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BadgeCheck, PiggyBank, Sparkles, TrendingDown, TrendingUp, Wallet, HandCoins, Building2, Landmark } from "lucide-react";
 import { monthTitle } from "../../lib/budget";
 import { useBudgetOutlet } from "./useBudgetOutlet";
+import { useAuth } from "../../context/useAuth";
 import MarketRates from "../../components/MarketRates";
 
 const BudgetOverviewPage = () => {
   const { stats, calendarSummary, transactions, money, currentMonth } = useBudgetOutlet();
+  const { user } = useAuth();
 
-  const chartData = [...calendarSummary]
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .map((entry) => ({
-      day: entry.date.slice(-2),
-      income: entry.income,
-      expense: entry.expense,
-    }));
+  const chartData = useMemo(() => {
+    return [...calendarSummary]
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .map((entry) => ({
+        day: entry.date.slice(-2),
+        income: entry.income,
+        expense: entry.expense,
+      }));
+  }, [calendarSummary]);
 
   const sampleCount = transactions.filter((txn) => txn.isSample).length;
   const budgetLeft = Math.max((stats.monthlyBudget || 0) - (stats.totalExpenses || 0), 0);
   
-  const today = new Date();
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const daysRemaining = Math.max(lastDayOfMonth - today.getDate() + 1, 1);
-  const dailySafeSpend = budgetLeft / daysRemaining;
+  const dailySafeSpend = useMemo(() => {
+    const today = new Date();
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const daysRemaining = Math.max(lastDayOfMonth - today.getDate() + 1, 1);
+    return budgetLeft / daysRemaining;
+  }, [budgetLeft]);
 
   return (
-    <div className="space-y-4">
-      {/* Student Welcome Header */}
-      {/* Student Welcome Header */}
-      <div className="bg-gradient-to-r from-indigo-600/20 to-fuchsia-600/20 rounded-2xl border border-indigo-500/20 p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 shrink-0">
-            <Sparkles size={18} />
+    <div className="space-y-6 pb-20 sm:pb-0">
+      {/* Premium Hero Header */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/5 p-6 sm:p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -mr-32 -mt-32" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-600/10 blur-[100px] -ml-32 -mb-32" />
+        
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-indigo-500/20">
+                Live Status
+              </span>
+              <div className="flex gap-1">
+                {[1, 2, 3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" style={{animationDelay: `${i*200}ms`}} />)}
+              </div>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              Hey {user?.name?.split(' ')[0] || 'Genie'}! 👋
+            </h1>
+            <p className="text-slate-400 text-sm font-medium">Your campus expenses are looking <span className="text-emerald-400 font-bold">balanced</span> today.</p>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-white font-bold leading-tight text-sm sm:text-base truncate">Student Pocket Genie Active</h2>
-            <p className="text-indigo-300 text-[9px] sm:text-[10px] uppercase font-bold tracking-widest truncate">Live tracking for campus life</p>
+
+          <div className="bg-white/5 backdrop-blur-md rounded-3xl p-4 border border-white/10 flex items-center gap-4 w-full md:w-auto">
+             <div className="p-3 rounded-2xl bg-fuchsia-500 shadow-lg shadow-fuchsia-500/20">
+                <Sparkles size={24} className="text-white" />
+             </div>
+             <div>
+                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Safe Daily Spend</p>
+                <p className="text-2xl font-black text-white">{money(dailySafeSpend)}</p>
+             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 bg-slate-950/50 px-2.5 py-1.5 rounded-xl border border-slate-800 shrink-0">
-           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-           <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">System Healthy</span>
         </div>
       </div>
-      <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Pocket Money", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-300" },
-          { label: "Spent", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-300" },
-          { label: "In Wallet", value: money(stats.netBalance), icon: Wallet, color: "text-cyan-300" },
-          { 
-            label: "Safe to Spend", 
-            value: money(dailySafeSpend), 
-            icon: Sparkles, 
-            color: "text-fuchsia-300", 
-            highlight: true,
-            info: "Formula: (Budget Left) / (Days Remaining). Adjusted daily to keep you on track."
-          },
-          { 
-            label: "Month Limit", 
-            value: money(budgetLeft), 
-            icon: PiggyBank, 
-            color: "text-indigo-300",
-            info: "Remaining portion of your set monthly limit. Negative means overspent."
-          },
-        ].map((card, idx) => (
+          { label: "Incoming", value: money(stats.totalIncome), icon: TrendingUp, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" },
+          { label: "Expenses", value: money(stats.totalExpenses), icon: TrendingDown, color: "bg-red-500", shadow: "shadow-red-500/20" },
+          { label: "Net Assets", value: money(stats.netBalance), icon: Wallet, color: "bg-cyan-500", shadow: "shadow-cyan-500/20" },
+          { label: "Remaining", value: money(budgetLeft), icon: PiggyBank, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
+        ].map((card) => (
           <article 
             key={card.label} 
-            className={`group relative rounded-2xl border ${card.highlight ? 'border-fuchsia-500/30 bg-fuchsia-500/10' : 'border-slate-800 bg-slate-900/80'} p-3 sm:p-4 transition-transform hover:scale-[1.02] ${idx === 4 ? 'col-span-2 sm:col-span-1' : ''}`}
+            className="group rounded-3xl border border-white/5 bg-slate-900/60 p-4 sm:p-5 transition-all hover:translate-y-[-4px] hover:bg-slate-900/80 active:scale-95 shadow-xl shadow-black/20"
           >
-            <div className="flex justify-between items-start">
-              <card.icon size={16} className={card.color} />
-              {card.info && (
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-[9px] text-slate-300 px-2 py-1 rounded absolute top-2 right-2 max-w-[120px] pointer-events-none z-20 shadow-xl border border-slate-700 hidden sm:block">
-                  {card.info}
-                </div>
-              )}
+            <div className={`w-10 h-10 rounded-2xl ${card.color} flex items-center justify-center text-white mb-4 shadow-lg ${card.shadow}`}>
+              <card.icon size={18} />
             </div>
-            <p className="text-[9px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.18em] text-slate-500 font-semibold mt-2 truncate">{card.label}</p>
-            <p className={`text-lg sm:text-2xl font-black mt-0.5 sm:mt-1 ${card.highlight ? 'text-fuchsia-100' : 'text-white'} truncate`}>{card.value}</p>
+            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mb-1">{card.label}</p>
+            <p className="text-xl sm:text-2xl font-black text-white truncate">{card.value}</p>
           </article>
         ))}
       </section>
 
-      {/* Account System Breakdown */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Account System Breakdown - More visual */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: "UPI & Bank", value: stats.userNetBalance, icon: Building2, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
-          { label: "Cash in Hand", value: stats.userCashBalance, icon: HandCoins, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
+          { label: "Digital / UPI", value: stats.userNetBalance, icon: Building2, gradient: "from-cyan-500 to-blue-600" },
+          { label: "Physical Cash", value: stats.userCashBalance, icon: HandCoins, gradient: "from-amber-500 to-orange-600" },
+          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, gradient: "from-indigo-500 to-violet-600" },
         ].map((item) => (
-          <div key={item.label} className={`rounded-2xl border ${item.border} ${item.bg} p-4 flex items-center gap-4`}>
-             <div className={`w-10 h-10 rounded-xl ${item.bg} border ${item.border} flex items-center justify-center ${item.color}`}>
-                <item.icon size={20} />
-             </div>
-             <div>
-                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{item.label}</p>
-                <p className="text-xl font-black text-white">{money(item.value)}</p>
-             </div>
+          <div key={item.label} className="relative group overflow-hidden rounded-[2rem] border border-white/5 bg-slate-950 p-5 shadow-xl">
+            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${item.gradient} opacity-5 blur-2xl transition-opacity group-hover:opacity-10`} />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shadow-lg`}>
+                <item.icon size={22} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">{item.label}</p>
+                <p className="text-2xl font-black text-white">{money(item.value)}</p>
+              </div>
+            </div>
           </div>
         ))}
-      </section>
+      </div>
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-4">

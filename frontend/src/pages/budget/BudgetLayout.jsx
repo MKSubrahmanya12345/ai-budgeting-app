@@ -312,38 +312,64 @@ const BudgetLayout = () => {
           </aside>
           </>
 
-          <main className="space-y-4 min-w-0 pb-20 lg:pb-0">
-            <header className="rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:p-5 sticky top-0 z-30 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 hover:text-white lg:hidden"
-                  >
-                    <Menu size={20} />
-                  </button>
-                  <div className="min-w-0">
-                    <h1 className="text-lg sm:text-2xl font-black text-white truncate">Personal Budget</h1>
-                    <p className="hidden sm:block text-xs text-slate-400 mt-0.5">Navigate sections from the sidebar.</p>
-                  </div>
+          <main className="space-y-4 min-w-0 pb-32 lg:pb-0">
+            {/* Superior Mobile Header */}
+            <header className="fixed top-0 left-0 right-0 z-40 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 px-4 py-3 lg:hidden flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="p-2 rounded-2xl bg-slate-900 border border-white/10 text-slate-300 active:scale-90 transition-all"
+                >
+                  <Menu size={20} />
+                </button>
+                <div>
+                   <h1 className="text-sm font-black text-white leading-none">Pocket Genie</h1>
+                   <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-0.5">{monthTitle(currentMonth)}</p>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <button
-                    onClick={() => shiftMonth(-1)}
-                    className="p-1.5 sm:p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
-                  >
-                    <ChevronLeft size={14} className="sm:w-[15px] sm:h-[15px]" />
-                  </button>
-                  <div className="px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-slate-700 bg-slate-950 text-[10px] sm:text-sm font-bold min-w-[100px] sm:min-w-[160px] text-center text-white truncate">
-                    {monthTitle(currentMonth)}
-                  </div>
-                  <button
-                    onClick={() => shiftMonth(1)}
-                    className="p-1.5 sm:p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
-                  >
-                    <ChevronRight size={14} className="sm:w-[15px] sm:h-[15px]" />
-                  </button>
+              </div>
+
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-2xl border border-white/5">
+                <button
+                  onClick={() => shiftMonth(-1)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <div className="w-[1px] h-4 bg-white/5 mx-1" />
+                <button
+                  onClick={() => shiftMonth(1)}
+                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </header>
+
+            {/* Content Spacer for Fixed Mobile Header */}
+            <div className="h-10 lg:hidden" />
+
+            {/* Desktop-only Header */}
+            <header className="hidden lg:flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sticky top-5 z-30 backdrop-blur-md">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-black text-white truncate">Personal Budget</h1>
+                <p className="text-xs text-slate-400 mt-0.5">Manage your financial growth with AI insights.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => shiftMonth(-1)}
+                  className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <div className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-950 text-sm font-bold min-w-[160px] text-center text-white">
+                  {monthTitle(currentMonth)}
                 </div>
+                <button
+                  onClick={() => shiftMonth(1)}
+                  className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  <ChevronRight size={15} />
+                </button>
               </div>
             </header>
 
