@@ -3,7 +3,7 @@ import Expense from "../models/expense.js";
 import Goal from "../models/goal.js";
 import User from "../models/user.js";
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const getGeminiApiKey = () =>
   process.env.GEMINI_API_KEY || process.env["GEMINI_API+KEY"] || process.env.GEMINI_KEY || "";
@@ -120,7 +120,7 @@ Output JSON:
   "canAfford": boolean,
   "confidence": "high" | "medium" | "low",
   "riskLevel": "low" | "medium" | "high",
-  "summary": "one witty student-centric sentence",
+  "summary": "one very short sentence (max 10 words)",
   "reasoning": ["max 3 short bullets"],
   "recommendedAction": "e.g., Add to Wishlist / Wait until next month / Go for it",
   "spendCap": number,
@@ -296,9 +296,10 @@ export const getAiSuggestion = async (req, res) => {
 
 export const getCanIAffordInsight = async (req, res) => {
   try {
-    const amount = Number(req.body.amount);
+    const amount = Number(req.body.amount || 0);
     const itemName = String(req.body.itemName || req.body.description || "").trim();
-    const plannedDate = req.body.plannedDate ? new Date(req.body.plannedDate) : new Date();
+    const today = new Date();
+    const plannedDate = req.body.plannedDate ? new Date(req.body.plannedDate) : today;
     const entryMode = req.body.entryMode === "demo" ? "demo" : "actual";
     const selectedGoalId = req.body.goalId ? String(req.body.goalId) : null;
 
@@ -314,7 +315,7 @@ export const getCanIAffordInsight = async (req, res) => {
       return res.status(400).json({ message: "Planned date is invalid" });
     }
 
-    const { start, end } = getMonthRangeFromDate(plannedDate);
+    const { start, end } = getMonthRangeFromDate(today);
     const [transactions, user, goals] = await Promise.all([
       Expense.find({
         userId: req.user.id,
@@ -331,43 +332,58 @@ export const getCanIAffordInsight = async (req, res) => {
     const totalExpenses = transactions
       .filter((txn) => txn.type !== "income")
       .reduce((sum, txn) => sum + txn.amount, 0);
-    const netBalance = totalIncome - totalExpenses;
-    const monthlyBudget = Number(user?.monthlyBudget || 0);
-    const budgetRemaining = monthlyBudget > 0 ? Math.max(monthlyBudget - totalExpenses, 0) : Math.max(netBalance, 0);
 
-    const goalRows = goals.map((goal) => toGoalTimeline(goal, plannedDate));
+    // Wallet is the full sum of all balances (UPI + Cash + Savings)
+    const totalWallet = (user.netBalance || 0) + (user.cashBalance || 0) + (user.savingsBalance || 0);
+    const monthlyBudget = Number(user?.monthlyBudget || 0);
+
+    // Days logic for "cutting money based on deadline"
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const daysRemainingInMonth = Math.max(lastDayOfMonth - today.getDate() + 1, 1);
+    const diffMs = plannedDate.getTime() - today.getTime();
+    const daysUntilPurchase = Math.max(Math.floor(diffMs / (1000 * 60 * 60 * 24)), 0);
+    const daysUntilPurchaseClamped = Math.min(daysUntilPurchase, daysRemainingInMonth - 1);
+
+    const budgetRemaining = Math.max(monthlyBudget - totalExpenses, 0);
+    
+    // Survival reserve is now strictly 20% of the remaining monthly budget goal.
+    const reservedForSurvival = budgetRemaining * 0.2;
+
+    const goalRows = goals.map((goal) => toGoalTimeline(goal, today));
     const goalMonthlyNeed = goalRows.reduce((sum, goal) => sum + goal.monthlyRequired, 0);
 
-    const spendableBeforeGoals = Math.max(Math.min(Math.max(netBalance, 0), budgetRemaining), 0);
-    const spendableNow = Math.max(spendableBeforeGoals - goalMonthlyNeed, 0);
-    const projectedAfterPurchase = spendableNow - amount;
+    // Truly Safe Spend: What is left after survival and goals
+    const spendableAtDeadline = Math.max(budgetRemaining - reservedForSurvival - goalMonthlyNeed, 0);
+    const spendableNow = totalWallet; 
+
+    const projectedAfterPurchase = totalWallet - amount;
     const canAfford = projectedAfterPurchase >= 0;
-    const confidence = canAfford ? (projectedAfterPurchase > amount * 0.25 ? "high" : "medium") : "medium";
-    const riskLevel = canAfford ? (projectedAfterPurchase <= amount * 0.1 ? "medium" : "low") : "high";
-    const shortfall = Math.max(amount - spendableNow, 0);
-    const suggestedMonthlySavings = Math.max(goalMonthlyNeed + shortfall / 3, goalMonthlyNeed);
+    
+    // Shortfall against the 'safe' monthly budget plan - renamed for clarity
+    const planOverrun = Math.max(amount - spendableAtDeadline, 0);
+    
+    const confidence = canAfford ? "high" : "low";
+    const riskLevel = !canAfford ? "high" : (planOverrun > 0 ? "medium" : "low");
 
     const heuristic = {
       canAfford,
       confidence,
       riskLevel,
       summary: canAfford
-        ? "You can afford this purchase without violating your current monthly goal commitments."
-        : "This purchase is likely to stretch your budget and goal commitments this month.",
-      reasoning: canAfford
-        ? [
-            `Estimated spendable now after goals: ${roundToTwo(spendableNow)}`,
-            `Projected balance after purchase: ${roundToTwo(projectedAfterPurchase)}`,
-          ]
-        : [
-            `Shortfall after purchase: ${roundToTwo(shortfall)}`,
-            `Current monthly goal need: ${roundToTwo(goalMonthlyNeed)}`,
-          ],
-      recommendedAction: canAfford
-        ? "Proceed, but keep some buffer for unplanned expenses."
-        : "Delay the purchase or split it across months to protect your savings goals.",
-      spendCap: roundToTwo(spendableNow),
-      suggestedMonthlySavings: roundToTwo(suggestedMonthlySavings),
+        ? (planOverrun > 0 
+            ? "You have the cash in your wallet, but this significantly exceeds your planned budget surplus and dips into survival funds."
+            : "This is a safe purchase! it fits within your monthly balance and protects your goals.")
+        : "This purchase is impossible right now without external funding or major debt.",
+      reasoning: [
+        `Total Liquidity: ${roundToTwo(totalWallet)}`,
+        `Reserved for Survival: ${roundToTwo(reservedForSurvival)}`,
+        `Budget Plan Overrun: ${roundToTwo(planOverrun)}`,
+      ],
+      recommendedAction: canAfford 
+        ? (planOverrun > 0 ? "Consider waiting or using the Wishlist Radar." : "Go for it!") 
+        : "Look for student discounts or save up for 2-3 more months.",
+      spendCap: roundToTwo(totalWallet),
+      suggestedMonthlySavings: roundToTwo(goalMonthlyNeed + (planOverrun / 2)),
     };
 
     const aiDecision = await getAffordabilityDecision({
@@ -376,10 +392,10 @@ export const getCanIAffordInsight = async (req, res) => {
       context: {
         totalIncome: roundToTwo(totalIncome),
         totalExpenses: roundToTwo(totalExpenses),
-        netBalance: roundToTwo(netBalance),
+        netBalance: roundToTwo(totalWallet),
         monthlyBudget: roundToTwo(monthlyBudget),
         budgetRemaining: roundToTwo(budgetRemaining),
-        spendableNow: roundToTwo(spendableNow),
+        spendableNow: roundToTwo(totalWallet),
         projectedAfterPurchase: roundToTwo(projectedAfterPurchase),
         goalMonthlyNeed: roundToTwo(goalMonthlyNeed),
       },
@@ -389,7 +405,10 @@ export const getCanIAffordInsight = async (req, res) => {
 
     const goalImpact = goalRows.map((goal) => {
       const selected = selectedGoalId && goal.goalId === selectedGoalId;
-      const extraDelayMonths = !canAfford && selected && goal.monthlyRequired > 0 ? Math.ceil(shortfall / goal.monthlyRequired) : 0;
+      // Show delay if this purchase forces a dip into the budget portion allocated for goals
+      const extraDelayMonths = selected && goal.monthlyRequired > 0 && planOverrun > 0 
+        ? Math.ceil(planOverrun / goal.monthlyRequired) 
+        : 0;
       return {
         ...goal,
         isSelected: Boolean(selected),
@@ -405,20 +424,21 @@ export const getCanIAffordInsight = async (req, res) => {
       context: {
         totalIncome: roundToTwo(totalIncome),
         totalExpenses: roundToTwo(totalExpenses),
-        netBalance: roundToTwo(netBalance),
+        netBalance: roundToTwo(totalWallet),
         monthlyBudget: roundToTwo(monthlyBudget),
         budgetRemaining: roundToTwo(budgetRemaining),
-        spendableNow: roundToTwo(spendableNow),
+        spendableNow: roundToTwo(totalWallet),
         projectedAfterPurchase: roundToTwo(projectedAfterPurchase),
       },
       goals: {
         selectedGoalId,
-        monthlyNeed: roundToTwo(goalMonthlyNeed),
+        monthlyNeed: roundToTwo(amount), // Item price as 'Current Goal' for UI clarity
         active: goalImpact,
       },
       decision: aiDecision,
     });
   } catch (error) {
+    console.error("Affordability AI error:", error);
     return res.status(500).json({ message: "Failed to generate affordability insight" });
   }
 };

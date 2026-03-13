@@ -3,7 +3,7 @@ import Expense from "../models/expense.js";
 import Goal from "../models/goal.js";
 import User from "../models/user.js";
 
-const GEMINI_MODEL = "gemini-2.5-flash-lite";
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const getGeminiApiKey = () =>
   process.env.GEMINI_API_KEY || process.env["GEMINI_API+KEY"] || process.env.GEMINI_KEY || "";
@@ -49,7 +49,7 @@ ${JSON.stringify({ metrics, topCategories, goals })}
 
 Output schema:
 {
-  "summary": "short paragraph",
+  "summary": "exactly one very short sentence",
   "wins": ["max 3 short bullets"],
   "risks": ["max 3 short bullets"],
   "actionPlan": ["exactly 4 short steps for next 7 days"],

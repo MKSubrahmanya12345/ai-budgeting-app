@@ -239,6 +239,19 @@ const BudgetAffordabilityPage = () => {
                 className="w-full bg-slate-950 border border-slate-700 rounded-2xl py-3 px-4 text-white focus:border-cyan-500/50 outline-none"
               />
             </div>
+            <div>
+              <label className="text-[10px] text-slate-500 font-bold uppercase tracking-widest ml-1 mb-1 block">Compete with Goal (Optional)</label>
+              <select
+                value={affordabilityForm.goalId}
+                onChange={(e) => setAffordabilityForm((prev) => ({ ...prev, goalId: e.target.value }))}
+                className="w-full bg-slate-950 border border-slate-700 rounded-2xl py-3 px-4 text-white focus:border-cyan-500/50 outline-none"
+              >
+                <option value="">Balance against all goals</option>
+                {goals.map((g) => (
+                  <option key={g._id} value={g._id}>{g.title}</option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="submit"
@@ -300,15 +313,29 @@ const BudgetAffordabilityPage = () => {
                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-3">Goal Impact Analysis</p>
                      <div className="space-y-3">
                         <div className="flex justify-between text-xs">
-                           <span className="text-slate-400">Current Goal Need</span>
+                           <span className="text-slate-400">Target Purchase Price</span>
                            <span className="text-white font-bold">{money(affordabilityResult.goals.monthlyNeed)}</span>
                         </div>
                         <div className="flex justify-between text-xs">
-                           <span className="text-slate-400">Spendable Cash Left</span>
+                           <span className="text-slate-400">In Wallet (Liquidity)</span>
                            <span className={`font-bold ${affordabilityResult.context.spendableNow > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                              {money(affordabilityResult.context.spendableNow)}
                            </span>
                         </div>
+                        {affordabilityResult.goals.active.some(g => g.potentialDelayMonths > 0) && (
+                          <div className="pt-3 mt-3 border-t border-slate-800 space-y-2">
+                             <p className="text-[9px] text-red-400 font-bold uppercase tracking-wider italic">Potential Goal Delays:</p>
+                             {affordabilityResult.goals.active
+                               .filter(g => g.potentialDelayMonths > 0)
+                               .map(g => (
+                                 <div key={g._id} className="flex justify-between text-[10px]">
+                                    <span className="text-slate-500">{g.title}</span>
+                                    <span className="text-red-400 font-black">+{g.potentialDelayMonths} Months</span>
+                                 </div>
+                               ))
+                             }
+                          </div>
+                        )}
                      </div>
                   </div>
                </div>
@@ -461,6 +488,31 @@ const BudgetAffordabilityPage = () => {
                ))
              )}
           </div>
+        </article>
+
+        {/* System Transparency / Documentation */}
+        <article className="rounded-3xl border border-indigo-500/20 bg-indigo-500/5 p-6 border-dashed">
+           <h3 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+              <AlertCircle size={16} className="text-indigo-400" />
+              System Transparency Document
+           </h3>
+           <div className="space-y-4 text-[11px] text-slate-400 leading-relaxed">
+              <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                 <p className="text-indigo-300 font-bold uppercase tracking-tighter mb-1 select-none">Engine Logic</p>
+                 <p>The "Can I Afford This" engine uses **LLM-Based Financial Synthesis**. It cross-references your **Total Liquidity** vs. **Goal Commitment**. If a purchase exceeds **20% of your net cash**, the coach triggers a mandatory risk warning. This is mathematical, not just 'vibes'.</p>
+              </div>
+              <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                 <p className="text-indigo-300 font-bold uppercase tracking-tighter mb-1 select-none">Transparency: Data Usage</p>
+                 <p>We analyze: (1) Current month total income, (2) Cumulative expense run-rate, and (3) Target date proximity for active goals. In **Demo Mode**, we inject synthetic transactions to demonstrate edge cases without exposing real financial data.</p>
+              </div>
+              <div className="bg-slate-950/50 p-4 rounded-2xl border border-slate-800 flex items-start gap-3">
+                 <Sparkles size={14} className="text-indigo-400 shrink-0 mt-0.5" />
+                 <div>
+                    <p className="text-indigo-300 font-bold uppercase tracking-tighter mb-1 select-none">The Student 'Maggi Index'</p>
+                    <p>To reduce 'superficiality' in numbers, we translate pure currency into 'Daily Survival Units' based on average campus food costs. This makes the consequence of spending clear: "Buy this game or eat better for 15 days."</p>
+                 </div>
+              </div>
+           </div>
         </article>
       </section>
     </div>

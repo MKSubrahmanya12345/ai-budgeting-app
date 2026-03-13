@@ -1,46 +1,46 @@
 import axios from "axios";
+import { auth } from "./firebase";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000",
-  withCredentials: true,
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000",
 });
 
-let refreshPromise = null;
+/**
+ * Interceptor to automatically attach Firebase ID Token to every request.
+ */
+api.interceptors.request.use(async (config) => {
+  try {
+    // Skip attaching token to the sync endpoint to avoid circular logic or initialization issues
+    if (config.url?.includes("/api/auth/firebase")) {
+      return config;
+    }
 
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const token = await currentUser.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (error) {
+    console.error("Error getting Firebase token:", error);
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
+/**
+ * Handle session expiry or unauthorized access.
+ */
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const status = error?.response?.status;
-    const originalRequest = error?.config;
-
-    if (!originalRequest || status !== 401 || originalRequest._retry) {
-      return Promise.reject(error);
+  (error) => {
+    if (error.response?.status === 401) {
+      // If we get an unauthorized error even with a token, 
+      // it might mean the user doesn't exist in our DB yet or token is invalid.
+      console.warn("Unauthorized API call");
     }
-
-    const isAuthRoute =
-      originalRequest.url?.includes("/api/auth/login") ||
-      originalRequest.url?.includes("/api/auth/register") ||
-      originalRequest.url?.includes("/api/auth/refresh");
-
-    if (isAuthRoute) {
-      return Promise.reject(error);
-    }
-
-    originalRequest._retry = true;
-
-    try {
-      if (!refreshPromise) {
-        refreshPromise = api.post("/api/auth/refresh").finally(() => {
-          refreshPromise = null;
-        });
-      }
-
-      await refreshPromise;
-      return api(originalRequest);
-    } catch (refreshError) {
-      return Promise.reject(refreshError);
-    }
-  },
+    return Promise.reject(error);
+  }
 );
 
 export default api;

@@ -13,7 +13,7 @@ const initialForm = {
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const { loginWithFirebase, loginWithGoogle } = useAuth();
 
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +25,19 @@ const Login = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleGoogleSignIn = async () => {
+    setErrorMessage("");
+    setIsLoading(true);
+    try {
+      await loginWithGoogle();
+      navigate("/dashboard/overview");
+    } catch (error) {
+      setErrorMessage(error.message || "Google Sign-In failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage("");
@@ -33,21 +46,18 @@ const Login = () => {
 
     try {
       if (isLogin) {
-        await login({ email: formData.email, password: formData.password });
+        await loginWithFirebase(formData.email, formData.password);
         navigate("/dashboard/overview");
       } else {
-        await register({
+        await loginWithFirebase(formData.email, formData.password, true, {
           name: formData.name,
-          email: formData.email,
-          password: formData.password,
           monthlyBudget: Number(formData.monthlyBudget),
           currency: formData.currency,
         });
-        setInfoMessage("Account created. Sign in to continue.");
-        setIsLogin(true);
+        navigate("/dashboard/overview");
       }
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || "Authentication failed");
+      setErrorMessage(error.response?.data?.message || error.message || "Authentication failed");
     } finally {
       setIsLoading(false);
     }
@@ -159,6 +169,24 @@ const Login = () => {
             {!isLoading && <ArrowRight size={18} />}
           </button>
         </form>
+
+        <div className="relative my-8">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-700/50"></div>
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-[#121c33] px-4 text-slate-500">Or continue with</span>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-4 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl disabled:opacity-50"
+        >
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-5 h-5" />
+          Sign in with Google
+        </button>
 
         <p className="text-center text-slate-500 text-sm mt-8">
           {isLogin ? "New here?" : "Already have an account?"}

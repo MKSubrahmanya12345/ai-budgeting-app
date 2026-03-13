@@ -23,6 +23,7 @@ import {
   Loader2,
   Users,
   HandCoins,
+  ShieldAlert,
 } from "lucide-react";
 import api from "../../lib/api";
 import { formatMonthKey, monthTitle } from "../../lib/budget";
@@ -32,13 +33,16 @@ import FloatingChatbot from "../../components/FloatingChatbot";
 const navItems = [
   { to: "/dashboard/overview", label: "Overview", icon: LayoutDashboard },
   { to: "/dashboard/campus-split", label: "Campus Splitter", icon: Users },
+  { to: "/dashboard/smart-spend", label: "Smart Spend", icon: Zap },
   { to: "/dashboard/analysis", label: "Analysis", icon: PieChart }, //$$$$$$
   { to: "/dashboard/affordability", label: "Affordability AI", icon: Sparkles },
   { to: "/dashboard/simulator", label: "Future Simulator", icon: Rocket },
   { to: "/dashboard/trends", label: "Trend Analysis", icon: TrendingUp },
+  { to: "/dashboard/moneybuddy", label: "Money Buddy", icon: Bot },
   { to: "/dashboard/courses", label: "Money Courses", icon: BookOpen },
   { to: "/dashboard/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/dashboard/transactions", label: "Transactions", icon: ReceiptText },
+  { to: "/dashboard/system-logic", label: "System Logic", icon: ShieldAlert },
   { to: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
@@ -333,7 +337,7 @@ const BudgetLayout = () => {
       </div>
       
       {/* Global AI Floating Chatbot */}
-      <FloatingChatbot />
+      <FloatingChatbot mode={entryMode} />
     </div>
   );
 };

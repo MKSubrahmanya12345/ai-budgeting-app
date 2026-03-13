@@ -13,7 +13,9 @@ import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
 import { useAuth } from "./context/useAuth";
 import CampusSplitterPage from "./pages/CampusSplitter/CampusSplitterPage";
+import SystemDocsPage from "./pages/SystemDocs/SystemDocsPage";
 import NetBalancePrompt from "./components/NetBalancePrompt";
+import SmartSpendPage from "./pages/budget/smartSpendPage";
 
 const FullScreenLoader = () => (
   <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
@@ -32,8 +34,9 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if ((user.netBalance === undefined || user.netBalance === null || user.netBalance === 0) && 
-      (user.cashBalance === undefined || user.cashBalance === null || user.cashBalance === 0)) {
+  if ((user.netBalance === undefined || user.netBalance === null) && 
+      (user.cashBalance === undefined || user.cashBalance === null) &&
+      (user.savingsBalance === undefined || user.savingsBalance === null)) {
     return <NetBalancePrompt />;
   }
 
@@ -74,6 +77,7 @@ function App() {
           <Route path="overview" element={<BudgetOverviewPage />} />
           <Route path="campus-split" element={<CampusSplitterPage />} />
           <Route path="analysis" element={<AnalysisPage />} /> 
+          <Route path="smart-spend" element={<SmartSpendPage />} />
           <Route path="affordability" element={<BudgetAffordabilityPage />} />
           <Route path="moneybuddy" element={<MoneyBuddyPage />} />
           <Route path="courses" element={<CoursesPage />} />
@@ -81,6 +85,7 @@ function App() {
           <Route path="trends" element={<SubscriptionRadarPage />} />
           <Route path="calendar" element={<BudgetCalendarPage />} />
           <Route path="transactions" element={<BudgetTransactionsPage />} />
+          <Route path="system-logic" element={<SystemDocsPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard/overview" replace />} />

@@ -1,53 +1,78 @@
 import { useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./auth-context";
 import api from "../lib/api";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup } from "firebase/auth";
+import { auth, googleProvider } from "../lib/firebase";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const refreshSession = async () => {
-    try {
-      const { data, status } = await api.get("/api/auth/me");
-      setUser(data.user);
-      if (status === 206) {
-        return data.user;
-      }
-      return data.user;
-    } catch {
+  // Sync Firebase user with our MongoDB backend
+  const syncWithBackend = async (firebaseUser) => {
+    if (!firebaseUser) {
       setUser(null);
-      return null;
+      setIsAuthLoading(false);
+      return;
+    }
+
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      // Use the firebase endpoint to ensure user exists in MongoDB and get their profile
+      const { data } = await api.post("/api/auth/firebase", { idToken });
+      setUser(data.user);
+    } catch (error) {
+      console.error("Backend sync failed:", error);
+      setUser(null);
     } finally {
       setIsAuthLoading(false);
     }
   };
 
-  const login = async (credentials) => {
-    const { data } = await api.post("/api/auth/login", credentials);
-    setUser(data.user);
-    return data.user;
+  const loginWithFirebase = async (email, password, isRegister = false, extraData = {}) => {
+    setIsAuthLoading(true);
+    try {
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Note: the observer onAuthStateChanged will handle the syncWithBackend
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (error) {
+      setIsAuthLoading(false);
+      throw error;
+    }
   };
 
-  const register = async (payload) => {
-    const { data } = await api.post("/api/auth/register", payload);
-    return data.user;
+  const loginWithGoogle = async () => {
+    setIsAuthLoading(true);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      setIsAuthLoading(false);
+      throw error;
+    }
   };
 
   const logout = async () => {
     try {
-      await api.post("/api/auth/logout");
+      await signOut(auth);
     } finally {
       setUser(null);
     }
   };
 
-  const updateNetBalance = async (netBalance, cashBalance) => {
-    await api.patch('/api/auth/net-balance', { netBalance, cashBalance });
-    await refreshSession();
+  const updateNetBalance = async (netBalance, cashBalance, savingsBalance) => {
+    await api.patch('/api/auth/net-balance', { netBalance, cashBalance, savingsBalance });
+    // Re-sync to get updated data
+    if (auth.currentUser) await syncWithBackend(auth.currentUser);
   }
 
   useEffect(() => {
-    refreshSession();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      syncWithBackend(firebaseUser);
+    });
+    return () => unsubscribe();
   }, []);
 
   const value = useMemo(
@@ -55,10 +80,9 @@ export const AuthProvider = ({ children }) => {
       user,
       isAuthenticated: Boolean(user),
       isAuthLoading,
-      login,
-      register,
+      loginWithFirebase,
+      loginWithGoogle,
       logout,
-      refreshSession,
       updateNetBalance,
       setUser,
     }),

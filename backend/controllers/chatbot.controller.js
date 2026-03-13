@@ -4,7 +4,12 @@ import User from "../models/user.js";
 import Goal from "../models/goal.js";
 import Chat from "../models/chat.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const getGeminiApiKey = () =>
+  process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || "";
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+
+const getGenAI = () => new GoogleGenerativeAI(getGeminiApiKey());
 
 export const getChats = async (req, res) => {
   try {
@@ -32,16 +37,31 @@ export const getChatHistory = async (req, res) => {
   }
 };
 
+export const deleteChat = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const deleted = await Chat.findOneAndDelete({ _id: chatId, userId: req.user.id });
+    if (!deleted) {
+      return res.status(404).json({ message: "Chat not found" });
+    }
+    res.status(200).json({ message: "Chat deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    res.status(500).json({ message: "Failed to delete chat" });
+  }
+};
+
 export const handleBuddyChat = async (req, res) => {
   try {
-    const { message, chatId } = req.body;
+    const { message, chatId, mode } = req.body;
     const userId = req.user.id;
+    const entryMode = mode === "demo" ? "demo" : "actual";
 
     // 1. Fetch all data in parallel
     const [user, goals, history, chatRecord] = await Promise.all([
       User.findById(userId),
       Goal.find({ userId, isArchived: false }),
-      Expense.find({ userId, isSample: { $ne: true } }).sort({ transactionDate: -1 }).limit(100),
+      Expense.find({ userId, entryMode }).sort({ transactionDate: -1 }).limit(100),
       chatId ? Chat.findOne({ _id: chatId, userId }) : Promise.resolve(null)
     ]);
 
@@ -90,7 +110,7 @@ export const handleBuddyChat = async (req, res) => {
       ? chatRecord.messages.slice(-6).map(m => `${m.role === 'user' ? 'User' : 'Buddy'}: ${m.text}`).join('\\n')
       : "No previous messages.";
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = getGenAI().getGenerativeModel({ model: "gemini-2.5-flash" });
 
     // 3. The "Expert Coach" System Prompt
     const prompt = `
@@ -127,18 +147,19 @@ export const handleBuddyChat = async (req, res) => {
 
       3. **THE "BUDDY CHALLENGE":** Most responses should end with a single, clear, actionable challenge for the user. Keep it brief and numeric.
 
-      4. **ANSWER DIRECTLY:** First, answer their question directly. Then pivot to insights, context showing, or the challenge. Be concise, do NOT write an essay. Use markdown for readability (bolding numbers, bullet points).
-
+      4. **STRICT BREVITY:** No greetings like "Hey there buddy" every time. Answer directly in 1-2 sentences. End with a 1-sentence "Buddy Challenge". Format: [Answer/Insight]. [Challenge]. No more than 30-40 words total. Use markdown for numbers.
+      
       ---
-      RECENT EXACT TRANSACTIONS (Max 25):
+      RECENT EXACT TRANSACTIONS (Max 15):
       ${JSON.stringify(recentTxns)}
       ---
       
-      Respond directly to the user now in a supportive, deeply contextual way:
+      Respond now (STRICTLY CONCISE):
     `;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response.text();
+    const responseBody = await result.response;
+    const response = responseBody.text();
 
     // Save to DB
     let chat = chatRecord;

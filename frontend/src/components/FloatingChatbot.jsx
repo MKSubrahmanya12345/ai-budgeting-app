@@ -4,7 +4,7 @@ import api from "../lib/api";
 import { Send, Bot, User, Loader2, Sparkles, X, MessageSquare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
-const FloatingChatbot = () => {
+const FloatingChatbot = ({ mode }) => {
   const { user } = useAuth();
   const defaultWelcome = useMemo(() => ({ 
     role: 'buddy', 
@@ -68,7 +68,7 @@ const FloatingChatbot = () => {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/api/ai/chats', { message: userMsg, chatId: activeChatId });
+      const response = await api.post('/api/ai/chats', { message: userMsg, chatId: activeChatId, mode });
       const data = response.data;
       setChatHistory(prev => [...prev, { role: 'buddy', text: data.reply }]);
       if (!activeChatId && data.chatId) setActiveChatId(data.chatId);
@@ -115,12 +115,25 @@ const FloatingChatbot = () => {
                 <p className="text-xs text-slate-400 m-0">AI Coach</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsOpen(false)} 
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => {
+                  setIsOpen(false);
+                  window.location.href = "/dashboard/moneybuddy";
+                }}
+                className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-full transition-colors flex items-center gap-1"
+                title="Open full view"
+              >
+                <MessageSquare size={18} />
+              </button>
+              <button 
+                onClick={() => setIsOpen(false)} 
+                className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-full transition-colors"
+                title="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}

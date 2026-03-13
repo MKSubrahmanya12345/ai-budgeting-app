@@ -2,7 +2,8 @@ import express from "express";
 const router = express.Router();
 
 // Import Controllers
-import { login, logout, me, refresh, register, updateBudget } from "../controllers/auth.controller.js";
+import { updateBudget } from "../controllers/auth.controller.js";
+import { firebaseAuth } from "../controllers/firebaseAuth.controller.js";
 import { updateNetBalance } from "../controllers/netBalance.controller.js";
 
 import {
@@ -23,7 +24,7 @@ import {
 
 import { getDashboardStats, getAnalysisSummary } from "../controllers/budget.controller.js";
 import { getAiBudgetBrief } from "../controllers/aiInsights.controller.js";
-import { handleBuddyChat, getChatHistory, getChats } from "../controllers/chatbot.controller.js";
+import { handleBuddyChat, getChatHistory, getChats, deleteChat } from "../controllers/chatbot.controller.js";
 import {
   contributeToGoal,
   createGoal,
@@ -48,16 +49,16 @@ import {
 } from "../controllers/transaction.controller.js";
 import { addToWishlist, listWishlist, removeFromWishlist, markAsBought } from "../controllers/wishlist.controller.js";
 import { convertCurrency } from "../controllers/settings.controller.js";
+import { searchPlaces } from "../controllers/places.controller.js";
 
 // Import Middleware
 import authMiddleware from "../middleware/auth.middleware.js";
 
-// Public Routes
-router.post("/auth/register", register);
-router.post("/auth/login", login);
-router.post("/auth/refresh", refresh);
-router.post("/auth/logout", logout);
-router.get("/auth/me", authMiddleware, me);
+// Public Auth Sync
+router.post("/auth/firebase", firebaseAuth);
+
+// Protected Auth Routes
+router.get("/auth/me", authMiddleware, (req, res) => res.status(200).json({ user: req.user }));
 router.patch("/auth/budget", authMiddleware, updateBudget);
 router.patch("/auth/net-balance", authMiddleware, updateNetBalance);
 
@@ -98,6 +99,7 @@ router.get("/ai/checkin/weekly", authMiddleware, getWeeklyAiCheckin);
 router.get("/ai/chats", authMiddleware, getChats);
 router.get("/ai/chats/:chatId", authMiddleware, getChatHistory);
 router.post("/ai/chats", authMiddleware, handleBuddyChat);
+router.delete("/ai/chats/:chatId", authMiddleware, deleteChat);
 
 
 
@@ -127,5 +129,8 @@ router.delete("/expenses", authMiddleware, clearExpenses);
 
 // Settings Routes
 router.post("/settings/convert-currency", authMiddleware, convertCurrency);
+
+// Places Routes
+router.get("/places/nearby", authMiddleware, searchPlaces);
 
 export default router;
