@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useBudgetOutlet } from "./useBudgetOutlet";
 import api from "../../lib/api";
-import { Loader2, Settings, Trash2, Coins, ShieldAlert } from "lucide-react";
+import { Loader2, Settings, Trash2, Coins, ShieldAlert, Zap, ChevronRight } from "lucide-react";
 
 const SettingsPage = () => {
   const { user, setUser } = useAuth();
@@ -95,6 +95,22 @@ const SettingsPage = () => {
               {isBusy ? <Loader2 size={16} className="animate-spin" /> : "Apply Conversion"}
             </button>
           </form>
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-white/5 bg-slate-900 shadow-xl overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <Zap size={18} className="text-indigo-400" />
+            <h3 className="font-bold text-white">Project Showcase</h3>
+          </div>
+          <p className="text-xs text-slate-400 mb-6 leading-relaxed">Want to see the startup pitch page again? View our landing page to see what Pocket Genie is all about.</p>
+          <button
+            onClick={() => window.open("/hero-preview", "_blank")}
+            className="w-full rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 py-3.5 text-xs font-black text-white transition-all flex items-center justify-center gap-2 group"
+          >
+            Launch Hero Page <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+          </button>
         </div>
       </section>
 

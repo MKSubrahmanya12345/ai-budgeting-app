@@ -66,6 +66,7 @@ function App() {
             </PublicOnlyRoute>
           } 
         />
+        <Route path="/hero-preview" element={<LandingPage />} />
         <Route
           path="/login"
           element={
