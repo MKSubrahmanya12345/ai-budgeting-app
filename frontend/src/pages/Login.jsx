@@ -64,14 +64,24 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-slate-800/30 border border-slate-700/50 p-10 rounded-[2.5rem] backdrop-blur-xl shadow-2xl">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 blur-[120px] rounded-full" />
+      
+      <button 
+        onClick={() => navigate("/")}
+        className="absolute top-8 left-8 text-slate-500 hover:text-white text-sm font-bold transition-colors flex items-center gap-2"
+      >
+        ← Back to Home
+      </button>
+
+      <div className="max-w-md w-full bg-slate-900/40 border border-white/5 p-10 rounded-[2.5rem] backdrop-blur-3xl shadow-2xl relative z-10">
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 mb-4">
+          <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 mb-4 cursor-pointer" onClick={() => navigate("/")}>
             <Zap className="text-white w-8 h-8 fill-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Welcome to EcoSpend</h1>
-          <p className="text-slate-400 text-sm mt-2">Secure AI-powered expense tracking.</p>
+          <h1 className="text-2xl font-black text-white tracking-tight">Pocket Genie</h1>
+          <p className="text-slate-400 text-sm mt-1 font-medium">{isLogin ? "Welcome back, master!" : "Join the financial revolution."}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

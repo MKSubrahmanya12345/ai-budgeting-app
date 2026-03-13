@@ -74,7 +74,15 @@ const BudgetLayout = () => {
   const [busyAction, setBusyAction] = useState(false);
   const [flash, setFlash] = useState({ type: "", text: "" });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const flashTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isMobileMenuOpen]);
 
   const monthKey = useMemo(() => formatMonthKey(currentMonth), [currentMonth]);
 
@@ -212,107 +220,95 @@ const BudgetLayout = () => {
             )}
 
             <aside className={`
-              fixed top-0 left-0 z-50 h-full w-[280px] bg-slate-900 border-r border-slate-800 p-5 transition-transform duration-300 lg:static lg:z-0 lg:w-auto lg:h-fit lg:rounded-2xl lg:border lg:bg-slate-900/80 lg:sticky lg:top-5 lg:translate-x-0
-              ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+              fixed top-0 left-0 z-50 h-full w-[300px] neo-glass neo-shadow p-6 transition-all duration-500 ease-[cubic-bezier(0.33,1,0.68,1)] lg:static lg:z-0 lg:w-auto lg:h-[calc(100vh-40px)] lg:rounded-[2.5rem] lg:sticky lg:top-5 lg:translate-x-0
+              ${isMobileMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-full opacity-0 lg:opacity-100'}
             `}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-500/20">
-                    <Zap size={18} className="text-white" />
+              <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between mb-10">
+                  <div className="flex items-center gap-3 cursor-pointer group" onClick={() => { navigate("/dashboard/overview"); setIsMobileMenuOpen(false); }}>
+                    <div className="p-3 rounded-2xl bg-indigo-600 shadow-xl shadow-indigo-600/30 group-hover:rotate-12 transition-transform">
+                      <Zap size={22} className="text-white fill-current" />
+                    </div>
+                    <div>
+                      <h1 className="text-xl font-black text-white tracking-widest uppercase leading-none">Genie</h1>
+                      <p className="text-[10px] text-indigo-400 font-black uppercase tracking-[0.2em] mt-1">Pocket AI</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-bold text-white text-sm">Pocket Genie</p>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{user?.name || "Student"}</p>
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="p-2.5 rounded-xl bg-white/5 text-slate-400 hover:text-white lg:hidden"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <nav className="flex-1 space-y-1.5 overflow-y-auto pr-2 custom-scrollbar">
+                  {navItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={({ isActive }) =>
+                        `group flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold transition-all ${
+                          isActive
+                            ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
+                            : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                        }`
+                      }
+                    >
+                      <item.icon size={18} className="transition-transform group-hover:scale-110" /> 
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </nav>
+
+                <div className="mt-6 pt-6 border-t border-white/5 space-y-3">
+                  <div 
+                    className="flex items-center justify-between bg-white/5 p-3 rounded-2xl border border-white/5 cursor-pointer hover:bg-white/10 transition-all active:scale-95" 
+                    onClick={() => setEntryMode(entryMode === "actual" ? "demo" : "actual")}
+                  >
+                    <div>
+                       <p className="text-xs font-black text-white uppercase tracking-wider">Data Mode</p>
+                       <p className="text-[10px] text-slate-500 font-bold">{entryMode === 'actual' ? 'LIVE' : 'DEMO'}</p>
+                    </div>
+                    <div className={`${entryMode === 'demo' ? 'text-fuchsia-400' : 'text-indigo-400'}`}>
+                       {entryMode === 'demo' ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full rounded-2xl bg-white/5 hover:bg-red-500/10 text-slate-400 hover:text-red-400 py-3.5 text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                  >
+                    <LogOut size={16} /> Sign Out
+                  </button>
+                </div>
+
+                  <div className="mt-4 pt-6 border-t border-white/5">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-3 ml-1">Daily Limit</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={budgetInput}
+                      onChange={(event) => setBudgetInput(event.target.value)}
+                      className="flex-1 bg-white/5 border border-white/5 rounded-2xl py-2 px-4 text-sm font-bold text-white focus:border-indigo-500 transition-colors outline-none"
+                    />
+                    <button
+                      onClick={handleUpdateBudget}
+                      disabled={busyAction}
+                      className="rounded-2xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 text-xs font-black text-white transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      Set
+                    </button>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 text-slate-400 hover:text-white lg:hidden"
-                >
-                  <X size={20} />
-                </button>
               </div>
-
-            <nav className="space-y-1.5 mb-6">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-sm transition-all ${
-                      isActive
-                        ? "border-indigo-500/40 bg-indigo-500/15 text-indigo-200"
-                        : "border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-700"
-                    }`
-                  }
-                >
-                  <item.icon size={15} /> {item.label}
-                </NavLink>
-              ))}
-            </nav>
-
-            <div className="space-y-2.5 border-t border-slate-800 pt-4">
-              <div 
-                className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors" 
-                onClick={() => setEntryMode(entryMode === "actual" ? "demo" : "actual")}
-              >
-                <div>
-                   <p className="text-sm font-semibold text-white">Data Mode</p>
-                   <p className="text-xs text-slate-500">{entryMode === 'actual' ? 'Normal Mode' : 'Demo Mode'}</p>
-                </div>
-                <div className={`p-1.5 rounded-lg ${entryMode === 'demo' ? 'bg-fuchsia-500/20 text-fuchsia-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                   {entryMode === 'demo' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
-                </div>
-              </div>
-
-              {entryMode === 'demo' && (
-                <button
-                  onClick={handleSeedSample}
-                  disabled={busyAction}
-                  className="w-full rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 px-3 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-                >
-                  <PlusCircle size={14} /> Load Sample
-                </button>
-              )}
-              <button
-                onClick={fetchData}
-                disabled={busyAction}
-                className="w-full rounded-xl border border-slate-700 bg-slate-800 text-slate-200 px-3 py-2 text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                <RefreshCcw size={14} /> Refresh
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 px-3 py-2 text-sm flex items-center justify-center gap-2"
-              >
-                <LogOut size={14} /> Sign Out
-              </button>
-            </div>
-
-            <div className="mt-4 border-t border-slate-800 pt-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500 font-semibold mb-2">Monthly Budget</p>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={budgetInput}
-                  onChange={(event) => setBudgetInput(event.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl py-2 px-3 text-sm"
-                />
-                <button
-                  onClick={handleUpdateBudget}
-                  disabled={busyAction}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 py-2 text-sm font-semibold disabled:opacity-60"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          </aside>
+            </aside>
           </>
 
-          <main className="space-y-4 min-w-0 pb-32 lg:pb-0">
+          <main className="space-y-6 min-w-0 pb-32 lg:pb-0">
             {/* Superior Mobile Header */}
             <header className="fixed top-0 left-0 right-0 z-40 bg-slate-950/80 backdrop-blur-2xl border-b border-white/5 px-4 py-3 lg:hidden flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -349,26 +345,32 @@ const BudgetLayout = () => {
             <div className="h-10 lg:hidden" />
 
             {/* Desktop-only Header */}
-            <header className="hidden lg:flex items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sticky top-5 z-30 backdrop-blur-md">
-              <div className="min-w-0">
-                <h1 className="text-2xl font-black text-white truncate">Personal Budget</h1>
-                <p className="text-xs text-slate-400 mt-0.5">Manage your financial growth with AI insights.</p>
+            <header className="hidden lg:flex items-center justify-between gap-6 neo-glass neo-shadow p-6 rounded-[2.5rem] sticky top-5 z-30 transition-all duration-300">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="p-2.5 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-600/20">
+                   <Zap size={20} className="text-white fill-current" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-black text-white tracking-tight leading-none">Dashboard</h1>
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1.5">Intel & Insights</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+              
+              <div className="flex items-center gap-2 bg-slate-950/50 p-2 rounded-[2rem] border border-white/5">
                 <button
                   onClick={() => shiftMonth(-1)}
-                  className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-2xl hover:bg-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
                 >
-                  <ChevronLeft size={15} />
+                  <ChevronLeft size={18} />
                 </button>
-                <div className="px-4 py-2 rounded-xl border border-slate-700 bg-slate-950 text-sm font-bold min-w-[160px] text-center text-white">
+                <div className="px-6 py-2.5 rounded-2xl bg-indigo-600 text-sm font-black text-white min-w-[180px] text-center shadow-lg shadow-indigo-600/20 uppercase tracking-widest">
                   {monthTitle(currentMonth)}
                 </div>
                 <button
                   onClick={() => shiftMonth(1)}
-                  className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-colors"
+                  className="p-3 rounded-2xl hover:bg-white/5 text-slate-400 hover:text-white transition-all active:scale-90"
                 >
-                  <ChevronRight size={15} />
+                  <ChevronRight size={18} />
                 </button>
               </div>
             </header>

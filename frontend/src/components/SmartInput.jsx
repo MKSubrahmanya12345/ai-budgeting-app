@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Camera, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Camera, Loader2, Sparkles, Wand2, Zap } from "lucide-react";
 import api from "../lib/api";
 
 const categoryMap = {

@@ -11,6 +11,7 @@ import FutureSimulatorPage from "./pages/FutureSimulator/FutureSimulatorPage";
 import SubscriptionRadarPage from "./pages/SubscriptionRadar/SubscriptionRadarPage";
 import AnalysisPage from "./pages/budget/AnalysisPage"; //$$$$$$
 import SettingsPage from "./pages/budget/SettingsPage";
+import LandingPage from "./pages/LandingPage";
 import { useAuth } from "./context/useAuth";
 import CampusSplitterPage from "./pages/CampusSplitter/CampusSplitterPage";
 import SystemDocsPage from "./pages/SystemDocs/SystemDocsPage";
@@ -57,6 +58,14 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route 
+          path="/" 
+          element={
+            <PublicOnlyRoute>
+              <LandingPage />
+            </PublicOnlyRoute>
+          } 
+        />
         <Route
           path="/login"
           element={

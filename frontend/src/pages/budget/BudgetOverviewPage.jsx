@@ -31,72 +31,70 @@ const BudgetOverviewPage = () => {
   }, [budgetLeft]);
 
   return (
-    <div className="space-y-6 pb-20 sm:pb-0">
+    <div className="space-y-8 pb-32 lg:pb-12 animate-neo-slide">
       {/* Premium Hero Header */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 border border-white/5 p-6 sm:p-8 shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-600/10 blur-[100px] -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-fuchsia-600/10 blur-[100px] -ml-32 -mb-32" />
+      <div className="relative overflow-hidden rounded-[3rem] neo-glass neo-shadow p-8 sm:p-12 border-none">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 blur-[120px] -mr-48 -mt-48" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-fuchsia-600/10 blur-[120px] -ml-48 -mb-48" />
         
-        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-indigo-500/20">
-                Live Status
+        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border border-emerald-500/20 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live Pulse
               </span>
-              <div className="flex gap-1">
-                {[1, 2, 3].map(i => <div key={i} className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" style={{animationDelay: `${i*200}ms`}} />)}
-              </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
-              Hey {user?.name?.split(' ')[0] || 'Genie'}! 👋
+            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tighter leading-tight">
+              Hey {user?.name?.split(' ')[0] || 'Genie'}! <span className="text-indigo-400">👋</span>
             </h1>
-            <p className="text-slate-400 text-sm font-medium">Your campus expenses are looking <span className="text-emerald-400 font-bold">balanced</span> today.</p>
+            <p className="text-slate-400 text-lg font-medium max-w-md">Your campus accounts are looking <span className="text-emerald-400 font-black border-b-2 border-emerald-500/30">solid</span> today. No major leaks detected.</p>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md rounded-3xl p-4 border border-white/10 flex items-center gap-4 w-full md:w-auto">
-             <div className="p-3 rounded-2xl bg-fuchsia-500 shadow-lg shadow-fuchsia-500/20">
-                <Sparkles size={24} className="text-white" />
+          <div className="neo-glass bg-white/5 p-6 rounded-[2.5rem] border border-white/5 flex items-center gap-6 w-full md:w-auto shadow-2xl">
+             <div className="p-4 rounded-3xl bg-indigo-600 shadow-xl shadow-indigo-600/30">
+                <Sparkles size={32} className="text-white fill-current" />
              </div>
              <div>
-                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Safe Daily Spend</p>
-                <p className="text-2xl font-black text-white">{money(dailySafeSpend)}</p>
+                <p className="text-[10px] uppercase font-black tracking-[0.2em] text-slate-500">Daily Freedom</p>
+                <p className="text-3xl font-black text-white">{money(dailySafeSpend)}</p>
+                <p className="text-[10px] text-emerald-400 font-bold mt-1">Safe to spend today</p>
              </div>
           </div>
         </div>
       </div>
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {[
-          { label: "Incoming", value: money(stats.totalIncome), icon: TrendingUp, color: "bg-emerald-500", shadow: "shadow-emerald-500/20" },
-          { label: "Expenses", value: money(stats.totalExpenses), icon: TrendingDown, color: "bg-red-500", shadow: "shadow-red-500/20" },
-          { label: "Net Assets", value: money(stats.netBalance), icon: Wallet, color: "bg-cyan-500", shadow: "shadow-cyan-500/20" },
-          { label: "Remaining", value: money(budgetLeft), icon: PiggyBank, color: "bg-indigo-500", shadow: "shadow-indigo-500/20" },
+          { label: "Revenue", value: money(stats.totalIncome), icon: TrendingUp, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+          { label: "Outflow", value: money(stats.totalExpenses), icon: TrendingDown, color: "text-red-400", bg: "bg-red-500/10" },
+          { label: "Assets", value: money(stats.netBalance), icon: Wallet, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+          { label: "Reserve", value: money(budgetLeft), icon: PiggyBank, color: "text-indigo-400", bg: "bg-indigo-500/10" },
         ].map((card) => (
           <article 
             key={card.label} 
-            className="group rounded-3xl border border-white/5 bg-slate-900/60 p-4 sm:p-5 transition-all hover:translate-y-[-4px] hover:bg-slate-900/80 active:scale-95 shadow-xl shadow-black/20"
+            className="group rounded-[2.5rem] neo-glass neo-shadow p-6 sm:p-8 transition-all hover:translate-y-[-8px] hover:bg-white/5 active:scale-95 border-none"
           >
-            <div className={`w-10 h-10 rounded-2xl ${card.color} flex items-center justify-center text-white mb-4 shadow-lg ${card.shadow}`}>
-              <card.icon size={18} />
+            <div className={`w-12 h-12 rounded-2xl ${card.bg} ${card.color} flex items-center justify-center mb-6 transition-transform group-hover:scale-110 group-hover:rotate-6`}>
+              <card.icon size={24} />
             </div>
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-black mb-1">{card.label}</p>
-            <p className="text-xl sm:text-2xl font-black text-white truncate">{card.value}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black mb-1">{card.label}</p>
+            <p className="text-2xl sm:text-3xl font-black text-white truncate">{card.value}</p>
           </article>
         ))}
       </section>
 
-      {/* Account System Breakdown - More visual */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Account System Breakdown - Neo Style */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Digital / UPI", value: stats.userNetBalance, icon: Building2, gradient: "from-cyan-500 to-blue-600" },
-          { label: "Physical Cash", value: stats.userCashBalance, icon: HandCoins, gradient: "from-amber-500 to-orange-600" },
-          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, gradient: "from-indigo-500 to-violet-600" },
+          { label: "Digital Wallets", value: stats.userNetBalance, icon: Building2, color: "cyan" },
+          { label: "Cold Cash", value: stats.userCashBalance, icon: HandCoins, color: "amber" },
+          { label: "Savings Vault", value: stats.userSavingsBalance, icon: Landmark, color: "indigo" },
         ].map((item) => (
-          <div key={item.label} className="relative group overflow-hidden rounded-[2rem] border border-white/5 bg-slate-950 p-5 shadow-xl">
-            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${item.gradient} opacity-5 blur-2xl transition-opacity group-hover:opacity-10`} />
-            <div className="flex items-center gap-4 relative z-10">
-              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white shadow-lg`}>
-                <item.icon size={22} />
+          <div key={item.label} className="relative group overflow-hidden rounded-[2.5rem] neo-glass neo-shadow p-6 border-none">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${item.color}-500/10 blur-[80px] -mr-16 -mt-16`} />
+            <div className="flex items-center gap-5 relative z-10">
+              <div className="w-14 h-14 rounded-[1.5rem] bg-white/5 flex items-center justify-center text-white border border-white/5 group-hover:bg-white/10 transition-colors">
+                <item.icon size={24} className={`text-${item.color}-400`} />
               </div>
               <div>
                 <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">{item.label}</p>
@@ -107,75 +105,73 @@ const BudgetOverviewPage = () => {
         ))}
       </div>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <h2 className="font-semibold text-white">Cashflow Trend ({monthTitle(currentMonth)})</h2>
-          <p className="text-xs text-slate-400">Savings rate: {Number(stats.savingsRate || 0).toFixed(1)}%</p>
+      <section className="rounded-[3rem] neo-glass neo-shadow p-8 border-none overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/5 blur-[100px] -mr-48 -mt-48" />
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-10 relative z-10">
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">Financial Flow</h2>
+            <p className="text-xs text-slate-500 font-bold mt-1 uppercase tracking-widest">{monthTitle(currentMonth)} Intelligence</p>
+          </div>
+          <div className="px-4 py-2 rounded-2xl bg-white/5 border border-white/5">
+             <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Efficiency Rate</p>
+             <p className="text-lg font-black text-emerald-400">{Number(stats.savingsRate || 0).toFixed(1)}%</p>
+          </div>
         </div>
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-80 w-full relative">
+          <ResponsiveContainer width="100%" height="100%" debounce={50}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="incomeFillOverview" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
                   <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="expenseFillOverview" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} />
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="day" stroke="#94a3b8" />
-              <YAxis stroke="#94a3b8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
+              <XAxis 
+                dataKey="day" 
+                stroke="#475569" 
+                axisLine={false} 
+                tickLine={false}
+                tick={{fontSize: 10, fontWeight: 800}}
+                dy={10}
+              />
+              <YAxis 
+                stroke="#475569" 
+                axisLine={false} 
+                tickLine={false}
+                tick={{fontSize: 10, fontWeight: 800}}
+              />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "#0f172a",
-                  border: "1px solid #334155",
-                  borderRadius: "12px",
+                  backgroundColor: "rgba(15, 23, 42, 0.9)",
+                  border: "1px solid rgba(255,255,255,0.05)",
+                  borderRadius: "20px",
+                  backdropFilter: "blur(20px)",
+                  boxShadow: "0 20px 40px rgba(0,0,0,0.4)"
                 }}
+                itemStyle={{ fontWeight: 900, textTransform: 'uppercase', fontSize: '10px' }}
               />
-              <Area type="monotone" dataKey="income" stroke="#10b981" fill="url(#incomeFillOverview)" strokeWidth={2} />
-              <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#expenseFillOverview)" strokeWidth={2} />
+              <Area type="monotone" dataKey="income" stroke="#10b981" fill="url(#incomeFillOverview)" strokeWidth={4} dot={false} activeDot={{r: 6, strokeWidth: 0}} />
+              <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#expenseFillOverview)" strokeWidth={4} dot={false} activeDot={{r: 6, strokeWidth: 0}} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4 sm:p-5">
-        <h2 className="font-semibold text-white flex items-center gap-2">
-          <Sparkles size={16} className="text-cyan-300" /> Hackathon Demo Panel
-        </h2>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <p className="text-slate-300 font-medium flex items-center gap-2">
-              <BadgeCheck size={14} className="text-emerald-300" /> Sample Transactions Loaded
-            </p>
-            <p className="text-2xl font-black text-white mt-1">{sampleCount}</p>
-            <p className="text-xs text-slate-400 mt-1">Rows marked as sample are visible in Transactions.</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <p className="text-slate-300 font-medium">Monthly Budget</p>
-            <p className="text-xl font-bold text-white mt-1">{money(stats.monthlyBudget || 0)}</p>
-            <p className="text-xs text-slate-400 mt-1">Usage: {Number(stats.budgetUsagePercent || 0).toFixed(1)}%</p>
-          </div>
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <p className="text-slate-300 font-medium">Transaction Count</p>
-            <p className="text-xl font-bold text-white mt-1">{transactions.length}</p>
-            <p className="text-xs text-slate-400 mt-1">Income + expense entries for this month.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-slate-900 border border-indigo-500/20 rounded-2xl p-4 flex items-center gap-4">
-         <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">
-           <BadgeCheck size={20} />
+      <section className="bg-gradient-to-r from-indigo-600 to-violet-700 rounded-[2.5rem] p-8 sm:p-10 flex flex-col md:flex-row items-center gap-8 shadow-2xl relative overflow-hidden group">
+         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] -mr-32 -mt-32 group-hover:scale-150 transition-transform duration-1000" />
+         <div className="w-20 h-20 rounded-[2rem] bg-white/20 backdrop-blur-xl flex items-center justify-center text-white shadow-inner flex-shrink-0">
+           <Landmark size={40} className="fill-current" />
          </div>
-         <div className="flex-1">
-           <p className="text-white text-sm font-bold">Campus Perk Alert!</p>
-           <p className="text-slate-400 text-xs mt-0.5">Your University ID gets you 50% off on "Money Buddy Pro" and local cafes. Check your student email!</p>
+         <div className="flex-1 text-center md:text-left">
+           <h3 className="text-white text-2xl font-black tracking-tight">Campus Elite Perks</h3>
+           <p className="text-indigo-100 text-sm mt-2 font-medium">Your University ID gets you <span className="font-black underline">50% off</span> at local cafes and subscription services. We've mapped the best deals for you.</p>
          </div>
-         <button className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-500 transition-colors">Claim</button>
+         <button className="px-10 py-4 bg-white text-indigo-600 rounded-[1.5rem] text-sm font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 shadow-xl shadow-black/10">Explore Deals</button>
       </section>
 
       <MarketRates />
