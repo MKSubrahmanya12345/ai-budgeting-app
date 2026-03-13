@@ -62,6 +62,13 @@ const StoreMap = ({
   const alertedIdRef = useRef(null);
   const isDraggingRef = useRef(false);
 
+  // Use refs for items used in event handlers to avoid stale closures
+  const notifyRef = useRef(notify);
+  const transactionsRef = useRef(transactions);
+
+  useEffect(() => { notifyRef.current = notify; }, [notify]);
+  useEffect(() => { transactionsRef.current = transactions; }, [transactions]);
+
   // Clear route when center changes significantly
   useEffect(() => {
     setActiveRoute(null);
@@ -301,17 +308,17 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
           eventHandlers={{
             dragstart: () => {
               isDraggingRef.current = true;
-              setIsRefreshing(prev => !prev); // Trigger re-render to update ChangeView prop
-              notify('info', 'Radar Scanner Active: Identifying nearby venues...');
+              setIsRefreshing(prev => !prev); 
+              notifyRef.current('loading', 'Radar Active: Scouting area for history...');
             },
             drag: (e) => {
               const pos = e.target.getLatLng();
               
               const now = Date.now();
-              if (now - (window._lastDragTime || 0) < 50) return; // Faster response but still throttled
+              if (now - (window._lastDragTime || 0) < 50) return;
               window._lastDragTime = now;
 
-              // 1. Find the nearest place for the "Radar Snap"
+              // 1. Snapshot identification
               let minDist = Infinity;
               let closest = null;
               
@@ -323,32 +330,34 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
                 }
               });
 
-              // Only update state if the closest place actually changed (massive performance win)
               if (closest?.id !== nearestPlace?.id) {
                 setNearestPlace(minDist < 600 ? closest : null);
               }
 
-              // 2. Handle the "You spent X here" alert
+              // 2. Proximity Buzz
               const warningPlace = places.find(p => {
                 const dist = L.latLng(pos).distanceTo(L.latLng(placeToPos(p)));
-                return dist < 120; // 120m is perfect for a "parking" feel
+                return dist < 180; // Larger hit-box for better user feel
               });
 
               if (warningPlace) {
                 if (alertedIdRef.current !== warningPlace.id) {
-                  const merchantTxns = transactions.filter(t => 
-                    t.merchantName === warningPlace.name || 
-                    t.merchantId === warningPlace.id
+                  const query = warningPlace.name.toLowerCase();
+                  
+                  // Smarter fuzzy match for spending
+                  const merchantTxns = (transactionsRef.current || []).filter(t => 
+                    (t.merchantName && t.merchantName.toLowerCase().includes(query)) ||
+                    (t.description && t.description.toLowerCase().includes(query)) ||
+                    (t.merchantId === warningPlace.id)
                   );
                   
                   const totalSpent = merchantTxns.reduce((sum, t) => sum + t.amount, 0);
                   
-                  // Priority Alert: Specific Phrasing as requested
-                  if (totalSpent > 0 || warningPlace.isDemo) {
-                    const displayAmount = totalSpent > 0 ? totalSpent : (warningPlace.avg_cost || 500);
-                    notify('warning', `You spent ₹${displayAmount} here already. Do you want to go?`);
-                    alertedIdRef.current = warningPlace.id;
-                  }
+                  // FORCE NOTIFICATION: Show ₹0 if no history, so user knows it's working
+                  const displayAmount = totalSpent > 0 ? totalSpent : (warningPlace.avg_cost || 0);
+                  
+                  notifyRef.current('warning', `You spent ₹${displayAmount} here already. Do you want to go?`);
+                  alertedIdRef.current = warningPlace.id;
                 }
               } else {
                 alertedIdRef.current = null;

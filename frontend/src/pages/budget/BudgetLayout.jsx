@@ -106,7 +106,7 @@ const BudgetLayout = () => {
     }
     flashTimeoutRef.current = window.setTimeout(() => {
       setFlash({ type: "", text: "" });
-    }, 2600);
+    }, 4000);
   }, []);
 
   useEffect(() => {
@@ -377,19 +377,28 @@ const BudgetLayout = () => {
             </header>
 
             {/* Global Animated Toast Notification */}
-            <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[10000] pointer-events-none">
+            <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[999999] pointer-events-none">
               {flash.text && (
                 <div
-                  className={`px-6 py-3 rounded-2xl shadow-2xl border backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-300 flex items-center gap-3 ${
-                    flash.type === "error"
-                      ? "border-red-500/30 bg-red-500/90 text-white"
-                      : "border-emerald-500/30 bg-emerald-500/90 text-white"
+                  className={`px-6 py-4 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border backdrop-blur-2xl animate-in fade-in slide-in-from-top-4 duration-500 flex items-center gap-4 ${
+                    flash.type === "error" ? "border-red-500/50 bg-red-600/90 text-white" :
+                    flash.type === "warning" ? "border-amber-500/50 bg-amber-600/90 text-white" :
+                    flash.type === "success" ? "border-emerald-500/50 bg-emerald-600/90 text-white" :
+                    "border-indigo-500/50 bg-indigo-600/90 text-white"
                   }`}
                 >
-                  <div className={`p-1.5 rounded-lg ${flash.type === 'error' ? 'bg-white/20' : 'bg-white/20'}`}>
-                    <Sparkles size={16} className="animate-pulse" />
+                  <div className="p-2 rounded-xl bg-white/20 flex-shrink-0">
+                    {flash.type === 'error' ? <X size={20} /> : 
+                     flash.type === 'warning' ? <AlertTriangle size={20} /> :
+                     flash.type === 'success' ? <Zap size={20} fill="currentColor" /> :
+                     <Sparkles size={20} className="animate-pulse" />}
                   </div>
-                  <p className="text-sm font-black whitespace-nowrap uppercase tracking-tight">{flash.text}</p>
+                  <div className="flex flex-col">
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70 leading-none mb-1">
+                      {flash.type || 'System'} Alert
+                    </p>
+                    <p className="text-sm font-black whitespace-nowrap uppercase tracking-tight leading-none">{flash.text}</p>
+                  </div>
                 </div>
               )}
             </div>
