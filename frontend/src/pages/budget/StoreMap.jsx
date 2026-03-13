@@ -1,7 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup, useMap, Rectangle, Circle, Polyline, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { CreditCard, AlertTriangle, Target } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -43,8 +43,8 @@ const StoreMap = ({
 }) => {
   const [activeRoute, setActiveRoute] = useState(null);
   const [routingInfo, setRoutingInfo] = useState(null);
-  const [nearbyWarning, setNearbyWarning] = useState(null);
   const [nearestPlace, setNearestPlace] = useState(null);
+  const alertedIdRef = useRef(null);
 
   // Clear route when center changes significantly
   useEffect(() => {
@@ -295,20 +295,18 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
               });
 
               if (warningPlace) {
-                const categoryTxns = transactions.filter(t => t.category.toLowerCase() === (warningPlace.category || "other").toLowerCase());
-                const totalSpent = categoryTxns.reduce((sum, t) => sum + t.amount, 0);
-                const isRegular = categoryTxns.length >= 3;
+                if (alertedIdRef.current !== warningPlace.id) {
+                  const categoryTxns = transactions.filter(t => t.category.toLowerCase() === (warningPlace.category || "other").toLowerCase());
+                  const totalSpent = categoryTxns.reduce((sum, t) => sum + t.amount, 0);
+                  const isRegular = categoryTxns.length >= 3;
 
-                if (totalSpent > 2000 || isRegular) {
-                  setNearbyWarning({
-                    name: warningPlace.name,
-                    spent: totalSpent,
-                    regular: isRegular,
-                    id: warningPlace.id
-                  });
+                  if (totalSpent > 2000 || isRegular) {
+                    notify('error', `Budget Alert: You spend ₹${totalSpent.toFixed(0)} periodically at ${warningPlace.name}. Thinking twice?`);
+                    alertedIdRef.current = warningPlace.id;
+                  }
                 }
               } else {
-                setNearbyWarning(null);
+                alertedIdRef.current = null;
               }
             },
             dragend: (e) => {
@@ -341,22 +339,7 @@ const placeToPos = (p) => [p.lat || p.latitude, p.lng || p.longitude];
           </Popup>
         </Marker>
 
-        {/* Proximity Warning Overlay */}
-        {nearbyWarning && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000] animate-bounce">
-             <div className="bg-red-950/90 border border-red-500/50 p-4 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[300px] backdrop-blur-md">
-                <div className="p-2 bg-red-500/20 text-red-500 rounded-xl">
-                   <AlertTriangle size={20} />
-                </div>
-                <div>
-                   <p className="text-white text-xs font-black uppercase tracking-tight">Financial Alert: {nearbyWarning.name}</p>
-                   <p className="text-[10px] text-red-300">
-                     You spend around <span className="font-bold">₹{nearbyWarning.spent.toFixed(0)}</span> {nearbyWarning.regular ? 'regularly' : 'in total'} in this category. Are you sure?
-                   </p>
-                </div>
-             </div>
-          </div>
-        )}
+        {/* Interactive Pointer (The Smart Search Center) */}
 
         {/* Business/Deal Markers */}
         {places.map((place) => {
